@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@700&amp;display=swap');
+    </style>
+  </defs>
+  <text 
+    x="50%" 
+    y="50%" 
+    font-family="Roboto, sans-serif" 
+    font-size="280" 
+    font-weight="bold" 
+    fill="#000000" 
+    text-anchor="middle" 
+    dominant-baseline="central"
+  >
+    MR
+  </text>
+</svg>
