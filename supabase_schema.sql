@@ -34,10 +34,6 @@ CREATE TABLE match_notes (
 );
 
 -- 4. Setup Storage Bucket
--- Make sure to create a public bucket named "videos" in the Supabase Storage UI,
--- or run the following if you have permissions:
-INSERT INTO storage.buckets (id, name, public) VALUES ('videos', 'videos', true);
-
 -- Note: You may also need to set up RLS (Row Level Security) policies if your app requires authentication, 
 -- but for a single-user personal tool, you can disable RLS on these tables or set permissive policies.
 
@@ -50,11 +46,7 @@ VALUES ('team_images', 'team_images', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- 5. Set up Storage RLS Policies
--- Allow anyone to upload videos and images (since this is a personal tool without auth)
-CREATE POLICY "Allow public uploads to videos" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'videos');
-CREATE POLICY "Allow public read of videos" ON storage.objects FOR SELECT TO public USING (bucket_id = 'videos');
-CREATE POLICY "Allow public updates to videos" ON storage.objects FOR UPDATE TO public USING (bucket_id = 'videos');
-CREATE POLICY "Allow public deletes of videos" ON storage.objects FOR DELETE TO public USING (bucket_id = 'videos');
+-- Allow anyone to upload images (since this is a personal tool without auth)
 
 CREATE POLICY "Allow public uploads to team_images" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'team_images');
 CREATE POLICY "Allow public read of team_images" ON storage.objects FOR SELECT TO public USING (bucket_id = 'team_images');

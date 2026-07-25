@@ -1,14 +1,12 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import { AppContext } from './AppContext';
 import Home from './pages/Home';
 import UploadMatch from './pages/UploadMatch';
 import TeamsManager from './pages/TeamsManager';
 
 
-export const AppContext = createContext<{
-  isDrawerOpen: boolean;
-  setIsDrawerOpen: (val: boolean) => void;
-}>({ isDrawerOpen: false, setIsDrawerOpen: () => {} });
+
 // Using index.css imported in main.tsx
 
 function NavigationDrawer() {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ReactPlayer from 'react-player';
 import { supabase } from '../lib/supabase';
 import type { Match, Team } from '../lib/types';
 
@@ -38,6 +39,7 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
 
   useEffect(() => {
     fetchNotes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match.id]);
 
   const fetchNotes = async () => {
@@ -64,7 +66,7 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
                 parsedData.events = n.actual_note || '';
                 parsedData.notes = n.correct_note || '';
               }
-            } catch (e) {
+            } catch {
               parsedData.events = n.actual_note || '';
               parsedData.notes = n.correct_note || '';
             }
@@ -147,14 +149,14 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
       
       {/* Left side: Video Player */}
       <div className="match-detail-video" style={{ flex: '1 1 40%', marginTop: '4.2rem' }}>
-        <div style={{ backgroundColor: '#000', overflow: 'hidden', border: '2px solid var(--text-primary)' }}>
-          <video 
-            src={match.video_url} 
+        <div style={{ backgroundColor: '#000', overflow: 'hidden', border: '2px solid var(--text-primary)', display: 'flex', justifyContent: 'center' }}>
+          <ReactPlayer 
+            url={match.video_url} 
             controls 
-            style={{ width: '100%', display: 'block', maxHeight: '400px' }}
-          >
-            Your browser does not support the video tag.
-          </video>
+            width="100%" 
+            height="auto"
+            style={{ aspectRatio: '16/9', maxHeight: '400px' }}
+          />
         </div>
       </div>
 

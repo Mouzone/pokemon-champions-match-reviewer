@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Match, Team } from '../lib/types';
-import { AppContext } from '../App';
+import { AppContext } from '../AppContext';
 import { Modal } from '../components/ui/Modal';
 import UploadMatch from './UploadMatch';
 import MatchDetail from './MatchDetail';

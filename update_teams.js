@@ -79,7 +79,7 @@ Jolly Nature
 - Protect`;
 
 async function updateTeams() {
-  const { data, error } = await supabase
+  const { data: _data, error } = await supabase
     .from('teams')
     .update({ paste_text: teamPaste })
     .neq('name', 'asdf'); // Update all rows
