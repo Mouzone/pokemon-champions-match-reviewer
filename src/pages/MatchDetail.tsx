@@ -1,7 +1,7 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Match, Team } from '../lib/types';
-import { AppContext } from '../App';
+
 import { Button } from '../components/ui/Button';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { ReferenceTab } from '../components/ReferenceTab';
