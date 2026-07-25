@@ -10,18 +10,18 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Pokemon Champions Match Reviewer',
-        short_name: 'PKMN Reviewer',
+        name: 'Match Reviewer',
+        short_name: 'Match Reviewer',
         description: 'Review and annotate Pokemon Champions matches',
         theme_color: '#1a1a1a',
         icons: [
           {
-            src: 'pwa-192x192.svg',
+            src: 'icon-192.svg',
             sizes: '192x192',
             type: 'image/svg+xml'
           },
           {
-            src: 'pwa-512x512.svg',
+            src: 'icon-512.svg',
             sizes: '512x512',
             type: 'image/svg+xml'
           }
