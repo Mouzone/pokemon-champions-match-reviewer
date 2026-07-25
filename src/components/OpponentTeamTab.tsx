@@ -19,11 +19,11 @@ const TYPE_COLORS: Record<string, string> = {
 
 export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeamTabProps) {
   const [team, setTeam] = useState<({ name: string, id: string } | null)[]>(() => {
-    const padded = [...(initialTeam || [])];
+    const padded: ({ name: string, id: string } | null)[] = [...(initialTeam || [])];
     while(padded.length < 6) padded.push(null);
     return padded.slice(0, 6);
   });
-  const [teamWithTypes, setTeamWithTypes] = useState<(typeof team[0] & { types?: string[] })[]>([]);
+  const [teamWithTypes, setTeamWithTypes] = useState<(({ name: string, id: string } & { types?: string[] }) | null)[]>([]);
 
   useEffect(() => {
     async function fetchTypes() {
