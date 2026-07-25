@@ -5,15 +5,18 @@ import type { Match, Team } from '../lib/types';
 import { Button } from '../components/ui/Button';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { ReferenceTab } from '../components/ReferenceTab';
+import { OpponentTeamTab } from '../components/OpponentTeamTab';
 
 interface MatchDetailProps {
   match: Match & { teams: Team };
+  onMatchUpdate?: (updated: Match & { teams: Team }) => void;
 }
 
 type TurnData = { events: string; notes: string; knowns: string; assumptions: string; id?: string };
 
-export default function MatchDetail({ match }: MatchDetailProps) {
+export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) {
   const [activeTab, setActiveTab] = useState<'reference' | 'notes' | 'improvements'>('reference');
+  const [referenceSubTab, setReferenceSubTab] = useState<'myTeam' | 'opponent'>('myTeam');
   const [loading, setLoading] = useState(true);
 
 
@@ -264,7 +267,52 @@ export default function MatchDetail({ match }: MatchDetailProps) {
 
         {activeTab === 'reference' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, minHeight: '400px' }}>
-            <ReferenceTab pasteText={match.teams?.paste_text || ''} />
+            <div style={{ display: 'flex', gap: '1rem', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+              <button 
+                onClick={() => setReferenceSubTab('myTeam')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.1rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  color: referenceSubTab === 'myTeam' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  borderBottom: referenceSubTab === 'myTeam' ? '3px solid var(--text-primary)' : '3px solid transparent'
+                }}
+              >
+                My Team
+              </button>
+              <button 
+                onClick={() => setReferenceSubTab('opponent')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.1rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  color: referenceSubTab === 'opponent' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  borderBottom: referenceSubTab === 'opponent' ? '3px solid var(--text-primary)' : '3px solid transparent'
+                }}
+              >
+                Opponent
+              </button>
+            </div>
+            
+            {referenceSubTab === 'myTeam' ? (
+              <ReferenceTab pasteText={match.teams?.paste_text || ''} />
+            ) : (
+              <OpponentTeamTab 
+                matchId={match.id} 
+                initialTeam={match.opponent_team || []}
+                onUpdate={(newTeam) => {
+                  if (onMatchUpdate) {
+                    onMatchUpdate({ ...match, opponent_team: newTeam });
+                  }
+                }}
+              />
+            )}
           </div>
         )}
       </div>

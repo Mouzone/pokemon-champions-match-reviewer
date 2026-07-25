@@ -20,7 +20,6 @@ export function ReferenceTab({ pasteText }: ReferenceTabProps) {
           // PokeAPI sometimes uses specific suffixes for forms
           let fetchName = formatPokeApiName(p.name);
           if (fetchName.includes('ogerpon')) fetchName = 'ogerpon';
-          if (fetchName.includes('urshifu')) fetchName = fetchName.replace('-rapid-strike', '-rapid-strike-style').replace('-single-strike', '-single-strike-style');
           
           const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${fetchName}`);
           if (res.ok) {
@@ -83,23 +82,24 @@ export function ReferenceTab({ pasteText }: ReferenceTabProps) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
       
       {/* Carousel Controls */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', marginBottom: '0.25rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', alignItems: 'center', minHeight: '60px', marginBottom: '0.25rem' }}>
         {team.map((pokemon, idx) => (
           <div 
             key={idx} 
             onClick={() => setCurrentIndex(idx)}
             style={{ 
               cursor: 'pointer',
-              opacity: idx === currentIndex ? 1 : 0.4,
-              border: idx === currentIndex ? '3px solid black' : '3px solid transparent',
+              opacity: idx === currentIndex ? 1 : 0.5,
+              backgroundColor: idx === currentIndex ? '#fff' : 'transparent',
+              boxShadow: idx === currentIndex ? '0 4px 12px rgba(0,0,0,0.1), 0 0 0 2px #4384f5' : 'none',
               borderRadius: '50%',
               padding: '4px',
               transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: idx === currentIndex ? 50 : 40,
-              height: idx === currentIndex ? 50 : 40,
+              width: idx === currentIndex ? 54 : 44,
+              height: idx === currentIndex ? 54 : 44,
             }}
           >
             <img 
@@ -111,7 +111,15 @@ export function ReferenceTab({ pasteText }: ReferenceTabProps) {
         ))}
       </div>
 
-      <div className="ref-tab-container" style={{ border: '3px solid black', display: 'flex', backgroundColor: 'var(--bg-surface)', minHeight: '260px' }}>
+      <div className="ref-tab-container" style={{ 
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', 
+        borderRadius: '12px', 
+        border: '1px solid #e5e7eb', 
+        display: 'flex', 
+        backgroundColor: 'var(--bg-surface)', 
+        minHeight: '260px',
+        overflow: 'hidden'
+      }}>
         
         {/* Header Info */}
         <div className="ref-pane-left">
@@ -120,7 +128,7 @@ export function ReferenceTab({ pasteText }: ReferenceTabProps) {
             alt={p.name}
             style={{ width: 85, height: 85, objectFit: 'contain', marginBottom: '0.25rem' }}
           />
-          <h4 style={{ margin: 0, textTransform: 'uppercase', fontWeight: 900, fontSize: '1.4rem', letterSpacing: '1px' }}>{p.name}</h4>
+          <h4 style={{ margin: 0, textTransform: 'uppercase', fontWeight: 900, fontSize: '1.4rem', letterSpacing: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', textAlign: 'center' }} title={p.name}>{p.name}</h4>
           
           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', margin: '0.5rem 0 1rem 0' }}>
             {(p as any).types?.map((t: string) => (
@@ -158,7 +166,7 @@ export function ReferenceTab({ pasteText }: ReferenceTabProps) {
         {/* Right Pane (Stats or Moves) */}
         <div className="ref-pane-right">
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '3px solid black', padding: '0 0.5rem 0.5rem 0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '2px solid #e5e7eb', padding: '0 0.5rem 0.5rem 0.5rem' }}>
             <button 
               onClick={() => setRightPane(prev => prev === 'stats' ? 'moves' : 'stats')}
               style={{ padding: '0 0.5rem', cursor: 'pointer', background: 'transparent', border: 'none', fontWeight: 900, fontSize: '1.25rem' }}

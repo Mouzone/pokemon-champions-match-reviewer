@@ -118,16 +118,21 @@ export default function Home() {
                   <div className="team-left" style={{ flex: 1, paddingRight: '0.5rem' }}>
                     <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
                       <div className="pokemon-grid">
-                        {myTeam.slice(0, 6).map((p, i) => (
-                          <div key={i} title={p.name} className="pokemon-icon-wrapper" style={{ zIndex: 6 - i }}>
-                            <img 
-                              src={`https://play.pokemonshowdown.com/sprites/gen5/${getShowdownSpriteName(p.name)}.png`} 
-                              alt={p.name} 
-                              className="pokemon-icon"
-                              onError={(e) => (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'}
-                            />
-                          </div>
-                        ))}
+                        {Array.from({length: 6}).map((_, i) => {
+                          const p = myTeam[i];
+                          return (
+                            <div key={i} title={p?.name || ''} className="pokemon-icon-wrapper" style={{ zIndex: 6 - i, width: 'clamp(32px, 5.2vw, 64px)', height: 'clamp(32px, 5.2vw, 64px)' }}>
+                              {p ? (
+                                <img 
+                                  src={`https://play.pokemonshowdown.com/sprites/gen5/${getShowdownSpriteName(p.name)}.png`} 
+                                  alt={p.name} 
+                                  className="pokemon-icon"
+                                  onError={(e) => (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'}
+                                />
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
                       <span style={{ 
                         position: 'absolute', 
@@ -158,16 +163,21 @@ export default function Home() {
                   <div className="team-right" style={{ flex: 1, paddingLeft: '0.5rem' }}>
                     <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
                       <div className="pokemon-grid">
-                        {match.opponent_team.map((p, i) => (
-                          <div key={i} title={p.name} className="pokemon-icon-wrapper" style={{ zIndex: 6 - i }}>
-                            <img 
-                              src={`https://play.pokemonshowdown.com/sprites/gen5/${getShowdownSpriteName(p.name)}.png`} 
-                              alt={p.name} 
-                              className="pokemon-icon"
-                              onError={(e) => (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'}
-                            />
-                          </div>
-                        ))}
+                        {Array.from({length: 6}).map((_, i) => {
+                          const p = match.opponent_team[i];
+                          return (
+                            <div key={i} title={p?.name || ''} className="pokemon-icon-wrapper" style={{ zIndex: 6 - i, width: 'clamp(32px, 5.2vw, 64px)', height: 'clamp(32px, 5.2vw, 64px)' }}>
+                              {p ? (
+                                <img 
+                                  src={`https://play.pokemonshowdown.com/sprites/gen5/${getShowdownSpriteName(p.name)}.png`} 
+                                  alt={p.name} 
+                                  className="pokemon-icon"
+                                  onError={(e) => (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'}
+                                />
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -189,7 +199,7 @@ export default function Home() {
               </div>
               
               {expandedMatchId === match.id && (
-                <MatchDetail match={match} />
+                <MatchDetail match={match} onMatchUpdate={(updated) => setMatches(matches.map(m => m.id === updated.id ? updated : m))} />
               )}
             </div>
             );

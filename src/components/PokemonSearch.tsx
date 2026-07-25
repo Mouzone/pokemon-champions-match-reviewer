@@ -36,7 +36,8 @@ export function PokemonSearch({ onSelect }: PokemonSearchProps) {
 
   useEffect(() => {
     if (query.length > 1) {
-      const filtered = allPokemon.filter(p => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 5);
+      const searchQ = query.toLowerCase().replace(/ /g, '-');
+      const filtered = allPokemon.filter(p => p.name.toLowerCase().includes(searchQ)).slice(0, 5);
       setResults(filtered);
       setShowDropdown(true);
     } else {

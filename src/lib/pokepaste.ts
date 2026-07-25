@@ -91,6 +91,10 @@ export function getShowdownSpriteName(name: string): string {
   if (base === 'ogerpon-hearthflame') return 'ogerpon-hearthflame';
   if (base === 'ogerpon-cornerstone') return 'ogerpon-cornerstone';
   if (base.startsWith('urshifu-rapid')) return 'urshifu-rapidstrike';
+  if (base === 'floette-eternal') return base;
+  if (base.endsWith('-incarnate')) return base.replace('-incarnate', '');
+  if (base.includes('-therian')) return base;
+  if (base.includes('-mega')) return base.replace(/-mega-([xy])/i, '-mega$1');
   return base.replace(/-/g, '');
 }
 

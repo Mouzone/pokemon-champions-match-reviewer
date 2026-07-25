@@ -138,7 +138,7 @@ export default function UploadMatch({ onSuccess }: { onSuccess?: () => void }) {
           </div>
 
           <div className="input-wrapper">
-            <label className="input-label">Opponent's Team (Select up to 6)</label>
+            <label className="input-label">Opponent's Team (Optional, select up to 6)</label>
             <PokemonSearch onSelect={handleAddPokemon} />
             
             {opponentPokemon.length > 0 && (
