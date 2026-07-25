@@ -151,7 +151,7 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
       <div className="match-detail-video" style={{ flex: '1 1 40%', marginTop: '4.2rem' }}>
         <div style={{ backgroundColor: '#000', overflow: 'hidden', border: '2px solid var(--text-primary)', display: 'flex', justifyContent: 'center' }}>
           <ReactPlayer 
-            url={match.video_url} 
+            src={match.video_url} 
             controls 
             width="100%" 
             height="auto"

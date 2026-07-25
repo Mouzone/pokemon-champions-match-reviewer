@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Team } from '../lib/types';
-import { AppContext } from '../App';
+import { AppContext } from '../AppContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
