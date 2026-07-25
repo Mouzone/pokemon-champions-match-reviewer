@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { parsePokepaste, formatPokeApiName, getShowdownSpriteName, calculateStat, type ParsedPokemon } from '../lib/pokepaste';
+import { parsePokepaste, formatPokeApiName, getShowdownSpriteName, calculateStat, NATURES, type ParsedPokemon } from '../lib/pokepaste';
 
 interface ReferenceTabProps {
   pasteText: string;
@@ -189,19 +189,38 @@ export function ReferenceTab({ pasteText }: ReferenceTabProps) {
               {statNames.map(stat => {
                 const base = (p as any).baseStats ? (p as any).baseStats[stat] : 0;
                 const ev = p.evs[stat as keyof typeof p.evs];
-                const realStat = (p as any).baseStats ? calculateStat(base, ev, p.ivs[stat], 50, stat, p.nature) : '?';
+                const realStat = (p as any).baseStats ? calculateStat(base, ev, p.ivs[stat], 50, stat, p.nature, p.item) : '?';
                 
                 // Showdown-style color coding based on base stat
                 const hue = Math.floor((base || 0) * 180 / 255);
                 const statColor = base ? `hsl(${hue}, 85%, 45%)` : '#4384f5';
                 
+                const nat = NATURES[p.nature];
+                let natureSign = '';
+                if (nat) {
+                  if (nat.inc === stat) natureSign = '+';
+                  else if (nat.dec === stat) natureSign = '-';
+                }
+                
                 return (
-                  <div key={stat} style={{ display: 'grid', gridTemplateColumns: '40px 1fr 35px', gap: '0.4rem', fontSize: '1rem', alignItems: 'center' }}>
+                  <div key={stat} style={{ display: 'grid', gridTemplateColumns: '40px 1fr 50px', gap: '0.4rem', fontSize: '1rem', alignItems: 'center' }}>
                     <div style={{ textTransform: 'uppercase', fontWeight: 800, color: '#555', fontSize: '0.8rem' }}>{stat}</div>
                     <div style={{ width: '100%', backgroundColor: '#e5e7eb', height: '10px', borderRadius: '5px', overflow: 'hidden' }}>
                       <div style={{ width: `${Math.min((base / 255) * 100, 100)}%`, height: '100%', backgroundColor: statColor }} />
                     </div>
-                    <div style={{ textAlign: 'right', fontWeight: 800, color: statColor, fontSize: '1.1rem' }}>{realStat}</div>
+                    <div style={{ textAlign: 'right', fontWeight: 800, color: statColor, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px' }}>
+                      {realStat}
+                      <span style={{ 
+                        fontSize: '1.1rem', 
+                        fontWeight: 900, 
+                        width: '10px', 
+                        color: natureSign === '+' ? 'var(--danger)' : natureSign === '-' ? 'var(--success)' : 'transparent',
+                        display: 'inline-block',
+                        textAlign: 'left'
+                      }}>
+                        {natureSign || '+'}
+                      </span>
+                    </div>
                   </div>
                 );
               })}

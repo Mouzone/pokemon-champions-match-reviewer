@@ -98,7 +98,7 @@ export function getShowdownSpriteName(name: string): string {
   return base.replace(/-/g, '');
 }
 
-const NATURES: Record<string, { inc: string, dec: string }> = {
+export const NATURES: Record<string, { inc: string, dec: string }> = {
   Adamant: { inc: 'atk', dec: 'spa' },
   Jolly: { inc: 'spe', dec: 'spa' },
   Timid: { inc: 'spe', dec: 'atk' },
@@ -121,7 +121,7 @@ const NATURES: Record<string, { inc: string, dec: string }> = {
   Naive: { inc: 'spe', dec: 'spd' }
 };
 
-export function calculateStat(base: number, ev: number, iv: number, level: number, statName: string, nature: string): number {
+export function calculateStat(base: number, ev: number, iv: number, level: number, statName: string, nature: string, item?: string): number {
   if (statName === 'hp') {
     if (base === 1) return 1; // Shedinja
     return Math.floor((2 * base + iv + Math.floor(ev / 4)) * level / 100) + level + 10;
@@ -134,5 +134,16 @@ export function calculateStat(base: number, ev: number, iv: number, level: numbe
     if (nat.dec === statName) natureMult = 0.9;
   }
 
-  return Math.floor(Math.floor((2 * base + iv + Math.floor(ev / 4)) * level / 100 + 5) * natureMult);
+  let stat = Math.floor(Math.floor((2 * base + iv + Math.floor(ev / 4)) * level / 100 + 5) * natureMult);
+
+  if (item) {
+    const i = item.toLowerCase();
+    if (statName === 'spe' && i === 'choice scarf') stat = Math.floor(stat * 1.5);
+    if (statName === 'atk' && i === 'choice band') stat = Math.floor(stat * 1.5);
+    if (statName === 'spa' && i === 'choice specs') stat = Math.floor(stat * 1.5);
+    if (statName === 'spd' && i === 'assault vest') stat = Math.floor(stat * 1.5);
+    if ((statName === 'def' || statName === 'spd') && i === 'eviolite') stat = Math.floor(stat * 1.5);
+  }
+
+  return stat;
 }
