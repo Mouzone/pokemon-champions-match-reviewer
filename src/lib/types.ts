@@ -19,7 +19,7 @@ export interface Match {
   created_at: string;
   played_at: string;
   opponent_team: PokemonInfo[];
-  own_team_id: string;
+  own_team_id: string | null;
   result: Result;
   video_url: string;
 }
