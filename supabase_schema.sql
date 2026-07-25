@@ -48,3 +48,15 @@ ALTER TABLE teams ADD COLUMN IF NOT EXISTS spreads_image_url TEXT;
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('team_images', 'team_images', true)
 ON CONFLICT (id) DO NOTHING;
+
+-- 5. Set up Storage RLS Policies
+-- Allow anyone to upload videos and images (since this is a personal tool without auth)
+CREATE POLICY "Allow public uploads to videos" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'videos');
+CREATE POLICY "Allow public read of videos" ON storage.objects FOR SELECT TO public USING (bucket_id = 'videos');
+CREATE POLICY "Allow public updates to videos" ON storage.objects FOR UPDATE TO public USING (bucket_id = 'videos');
+CREATE POLICY "Allow public deletes of videos" ON storage.objects FOR DELETE TO public USING (bucket_id = 'videos');
+
+CREATE POLICY "Allow public uploads to team_images" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'team_images');
+CREATE POLICY "Allow public read of team_images" ON storage.objects FOR SELECT TO public USING (bucket_id = 'team_images');
+CREATE POLICY "Allow public updates to team_images" ON storage.objects FOR UPDATE TO public USING (bucket_id = 'team_images');
+CREATE POLICY "Allow public deletes of team_images" ON storage.objects FOR DELETE TO public USING (bucket_id = 'team_images');

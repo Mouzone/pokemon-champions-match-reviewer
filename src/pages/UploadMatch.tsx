@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { supabase } from '../lib/supabase';
 import type { Team, Result } from '../lib/types';
 import { Button } from '../components/ui/Button';
@@ -15,6 +17,9 @@ export default function UploadMatch({ onSuccess }: { onSuccess?: () => void }) {
   const [result, setResult] = useState<Result>('win');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [statusText, setStatusText] = useState('');
+  const [compressionProgress, setCompressionProgress] = useState(0);
+  const ffmpegRef = useRef(new FFmpeg());
 
   useEffect(() => {
     fetchTeams();
@@ -49,16 +54,52 @@ export default function UploadMatch({ onSuccess }: { onSuccess?: () => void }) {
       return;
     }
     setLoading(true);
+    setCompressionProgress(0);
+    setStatusText('Preparing to compress...');
 
     try {
+      const ffmpeg = ffmpegRef.current;
+      
+      if (!ffmpeg.loaded) {
+        setStatusText('Loading compression engine...');
+        ffmpeg.on('progress', ({ progress }) => {
+          setCompressionProgress(Math.round(progress * 100));
+        });
+        
+        ffmpeg.on('log', ({ message }) => {
+          console.log(message);
+        });
+
+        // Use unpkg to bypass Vite's asset handling and avoid COOP/COEP issues
+        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+        await ffmpeg.load({
+          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+        });
+      }
+
+      setStatusText('Compressing video (this takes a moment)...');
+      await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile));
+      
+      // Compress: 720p height, 30fps, CRF 28
+      await ffmpeg.exec(['-i', 'input.mp4', '-vf', 'scale=-2:720', '-r', '30', '-c:v', 'libx264', '-crf', '28', 'output.mp4']);
+      
+      setStatusText('Reading compressed video...');
+      const fileData = await ffmpeg.readFile('output.mp4');
+      const data = fileData as Uint8Array;
+      const safeData = new Uint8Array(data);
+      const compressedFile = new File([safeData], videoFile.name, { type: 'video/mp4' });
+
+      setStatusText('Uploading to server...');
+
       // 1. Upload video to Supabase Storage
-      const fileExt = videoFile.name.split('.').pop();
+      const fileExt = compressedFile.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = `matches/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('videos')
-        .upload(filePath, videoFile);
+        .upload(filePath, compressedFile);
 
       if (uploadError) throw uploadError;
 
@@ -91,6 +132,8 @@ export default function UploadMatch({ onSuccess }: { onSuccess?: () => void }) {
       alert('Error uploading match: ' + err.message);
     } finally {
       setLoading(false);
+      setStatusText('');
+      setCompressionProgress(0);
     }
   };
 
@@ -191,12 +234,19 @@ export default function UploadMatch({ onSuccess }: { onSuccess?: () => void }) {
           </div>
 
           <Button type="submit" disabled={loading || !videoFile || !selectedTeam}>
-            {loading ? 'Uploading Video (this may take a minute)...' : 'Upload Match'}
+            {loading ? (statusText || 'Processing...') : 'Upload Match'}
           </Button>
           {loading && (
-            <p style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-              Please do not close this window while the video is uploading.
-            </p>
+            <div style={{ textAlign: 'center', width: '100%' }}>
+              {compressionProgress > 0 && statusText.includes('Compressing') && (
+                <div style={{ width: '100%', backgroundColor: '#e5e7eb', height: '8px', borderRadius: '4px', margin: '0.5rem 0' }}>
+                  <div style={{ width: `${compressionProgress}%`, backgroundColor: 'var(--text-primary)', height: '100%', borderRadius: '4px', transition: 'width 0.3s' }}></div>
+                </div>
+              )}
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                Please do not close this window while the video is processing.
+              </p>
+            </div>
           )}
         </form>
       </div>
