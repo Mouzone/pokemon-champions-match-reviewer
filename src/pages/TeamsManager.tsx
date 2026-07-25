@@ -5,6 +5,7 @@ import { AppContext } from '../App';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
+import { parsePokepaste, getShowdownSpriteName } from '../lib/pokepaste';
 
 export default function TeamsManager() {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -103,10 +104,27 @@ export default function TeamsManager() {
             <p className="text-muted text-center">No teams created yet. Click the plus button above to create one!</p>
           </div>
         ) : (
-          teams.map(team => (
+          teams.map(team => {
+            const parsedTeam = team.paste_text ? parsePokepaste(team.paste_text) : [];
+            return (
             <div key={team.id} style={{ borderBottom: '2px solid var(--text-primary)', padding: '1rem' }}>
-              <h3 style={{ textTransform: 'uppercase', fontWeight: 700 }}>{team.name}</h3>
+              <h3 style={{ textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>{team.name}</h3>
               
+              {parsedTeam.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  {parsedTeam.map((p, i) => (
+                    <div key={i} title={p.name} style={{ width: '64px', height: '64px', backgroundColor: 'var(--bg-surface-hover)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img 
+                        src={`https://play.pokemonshowdown.com/sprites/gen5/${getShowdownSpriteName(p.name)}.png`} 
+                        alt={p.name} 
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                        onError={(e) => (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
                 {team.paste_text && (
                   <div style={{ flex: '1 1 300px' }}>
@@ -126,7 +144,8 @@ export default function TeamsManager() {
                 )}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
