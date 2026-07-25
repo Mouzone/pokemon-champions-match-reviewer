@@ -19,6 +19,7 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
   const [activeTab, setActiveTab] = useState<'reference' | 'notes' | 'improvements'>('reference');
   const [referenceSubTab, setReferenceSubTab] = useState<'myTeam' | 'opponent'>('myTeam');
   const [loading, setLoading] = useState(true);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
 
 
   const [improvementsNote, setImprovementsNote] = useState('');
@@ -39,8 +40,14 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
 
   useEffect(() => {
     fetchNotes();
+    fetchTeams();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match.id]);
+
+  const fetchTeams = async () => {
+    const { data } = await supabase.from('teams').select('*').order('created_at', { ascending: false });
+    if (data) setAllTeams(data as Team[]);
+  };
 
   const fetchNotes = async () => {
     setLoading(true);
@@ -303,7 +310,36 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
             </div>
             
             {referenceSubTab === 'myTeam' ? (
-              <ReferenceTab pasteText={match.teams?.paste_text || ''} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontWeight: 800, textTransform: 'uppercase' }}>Select Team:</span>
+                  <select 
+                    value={match.own_team_id || ''}
+                    onChange={async (e) => {
+                      const newTeamId = e.target.value;
+                      const { error } = await supabase.from('matches').update({ own_team_id: newTeamId || null }).eq('id', match.id);
+                      if (!error && onMatchUpdate) {
+                        const newTeam = allTeams.find(t => t.id === newTeamId) || null;
+                        onMatchUpdate({ ...match, own_team_id: newTeamId || null, teams: newTeam as any });
+                      }
+                    }}
+                    className="input-field"
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">-- No Team Selected --</option>
+                    {allTeams.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {match.teams ? (
+                  <ReferenceTab pasteText={match.teams.paste_text || ''} />
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '2rem', border: '2px dashed var(--border-color)', borderRadius: '8px' }}>
+                    <p className="text-muted">No team selected for this match.</p>
+                  </div>
+                )}
+              </div>
             ) : (
               <OpponentTeamTab 
                 matchId={match.id} 
