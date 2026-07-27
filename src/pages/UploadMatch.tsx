@@ -1,50 +1,110 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import type { Team } from '../lib/types';
+import { Button } from '../components/ui/Button';
 
+interface UploadMatchProps {
+  onSuccess?: () => void;
+}
 
-export default function UploadMatch() {
+export default function UploadMatch({ onSuccess }: UploadMatchProps) {
+  const [url, setUrl] = useState('');
+  const [result, setResult] = useState<'win' | 'loss' | 'tie'>('win');
+  const [teamId, setTeamId] = useState<string>('');
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchTeams();
+  }, []);
+
+  const fetchTeams = async () => {
+    const { data } = await supabase.from('teams').select('*').order('created_at', { ascending: false });
+    if (data) {
+      setTeams(data as Team[]);
+      if (data.length > 0) {
+        setTeamId(data[0].id);
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    if (!url) {
+      setError('YouTube URL is required.');
+      return;
+    }
+    
+    setSaving(true);
+    setError(null);
+    
+    const { error: insertError } = await supabase.from('matches').insert([{
+      played_at: new Date().toISOString(),
+      video_url: url,
+      result: result,
+      own_team_id: teamId || null,
+      opponent_team: []
+    }]);
+
+    setSaving(false);
+
+    if (insertError) {
+      setError(insertError.message);
+    } else {
+      if (onSuccess) onSuccess();
+    }
+  };
+
   return (
     <>
       <div className="modal-header">
-        <h2>Automated Upload Setup</h2>
+        <h2>Manual Match Upload</h2>
       </div>
-      <div className="modal-body" style={{ lineHeight: '1.6' }}>
-        <p style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-primary)' }}>
-          We've completely overhauled how you upload matches. You no longer need to manually copy YouTube links or fill out forms here. Everything is now automated directly from your iPhone!
-        </p>
-
-        <h3 style={{ marginTop: '2rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>How to Set Up the iOS Shortcut</h3>
+      <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {error && <div style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{error}</div>}
         
-        <ol style={{ marginLeft: '1.5rem', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <li>
-            <strong>Open the Shortcuts app</strong> on your iPhone and create a new Shortcut.
-          </li>
-          <li>
-            <strong>Add Action: Select Photos</strong> - Configure it to only include "Videos".
-          </li>
-          <li>
-            <strong>Add Action: Encode Media</strong> - Set it to resize the video to 720p with HEVC turned on (this shrinks the 1GB video to a manageable size).
-          </li>
-          <li>
-            <strong>Add Action: Get Contents of URL</strong> - This is the magic step. Set the URL to your Supabase Edge Function endpoint: 
-            <br />
-            <code style={{ background: 'var(--bg-surface)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.9em', display: 'inline-block', marginTop: '0.5rem' }}>
-              https://YOUR_PROJECT_REF.supabase.co/functions/v1/process-match
-            </code>
-          </li>
-          <li>
-            <strong>Configure the URL Action:</strong>
-            <ul style={{ marginLeft: '1.5rem', marginTop: '0.5rem' }}>
-              <li>Change Method to <strong>POST</strong></li>
-              <li>Add Header: <code>Authorization</code> = <code>Bearer YOUR_SUPABASE_ANON_KEY</code></li>
-              <li>Add Request Body: Set it to "Form" or "JSON" passing the <strong>Encoded Media</strong> and your chosen Team ID.</li>
-            </ul>
-          </li>
-        </ol>
+        <div>
+          <label className="input-label">YouTube URL</label>
+          <input 
+            type="text" 
+            className="input-field" 
+            placeholder="https://youtube.com/watch?v=..." 
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+          />
+        </div>
 
-        <div style={{ padding: '1rem', backgroundColor: 'var(--bg-surface)', borderLeft: '4px solid var(--primary)', borderRadius: '0 4px 4px 0' }}>
-          <h4 style={{ margin: '0 0 0.5rem 0' }}>How it works under the hood</h4>
-          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            When you run the shortcut, it instantly compresses your screen recording and sends it to your Supabase server. Our custom Edge Function then analyzes the video with Gemini AI, automatically uploads it to your YouTube channel, and saves all the match details into your database without you having to lift a finger.
-          </p>
+        <div>
+          <label className="input-label">Match Result</label>
+          <select 
+            className="input-field"
+            value={result}
+            onChange={e => setResult(e.target.value as any)}
+          >
+            <option value="win">Win</option>
+            <option value="loss">Loss</option>
+            <option value="tie">Tie</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="input-label">My Team</label>
+          <select 
+            className="input-field"
+            value={teamId}
+            onChange={e => setTeamId(e.target.value)}
+          >
+            <option value="">-- No Team Selected --</option>
+            {teams.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+          <Button className="btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Match'}
+          </Button>
         </div>
       </div>
     </>

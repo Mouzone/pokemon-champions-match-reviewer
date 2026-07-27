@@ -1,37 +1,63 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
   /* Colors */
-  --bg-base: #ffffff;
+  --bg-base: #f8f9fa;
   --bg-surface: #ffffff;
-  --bg-surface-hover: #f4f4f4;
+  --bg-surface-hover: #f1f3f5;
   
-  --text-primary: #000000;
-  --text-secondary: #333333;
-  --text-muted: #666666;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
   
-  --primary: #000000;
-  --primary-hover: #333333;
+  --primary: #111827;
+  --primary-hover: #374151;
   
   /* OP.GG style win/loss */
-  --success: #2b67d8; /* Blue for win */
-  --danger: #d32f2f;  /* Red for loss */
-  --warning: #555555; /* Gray for tie */
+  --success: #3b82f6; /* Modern Blue for win */
+  --danger: #ef4444;  /* Modern Red for loss */
+  --warning: #6b7280; /* Gray for tie */
   
-  --border-color: #e0e0e0;
+  --border-color: #e5e7eb;
   
   /* Typography */
-  --font-sans: 'Roboto', sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   
-  /* Radii - minimal/none */
-  --radius-sm: 0;
-  --radius-md: 0;
-  --radius-lg: 0;
+  /* Radii - modern */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
   
-  /* Shadows - none */
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: none;
+  /* Match Results */
+  --win-color: #4384f5;
+  --win-bg: #ecf2ff;
+  --win-action: #d4e1ff;
+  --win-text: #2b67d8;
+
+  --loss-color: #e84057;
+  --loss-bg: #fff1f3;
+  --loss-action: #ffdbdf;
+  --loss-text: #d32f2f;
+
+  --tie-color: #888888;
+  --tie-bg: #f4f4f5;
+  --tie-action: #e5e7eb;
+  --tie-text: var(--text-muted);
+
+  /* Shadows - subtle & modern */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Global utility for smooth interactions */
+.interactive {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 * {
@@ -174,45 +200,91 @@ h2 {
 /* Match Row Desktop Styles */
 .match-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem 1.25rem 1rem;
-  margin: 0;
-  transition: opacity 0.2s;
+  background-color: var(--bg-surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
   cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+  position: relative;
+  border-left-width: 6px;
+  border-left-style: solid;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+.match-row:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  opacity: 0.9;
+}
+
+.match-row.result-win { border-left-color: var(--win-color); background-color: var(--win-bg); }
+.match-row.result-loss { border-left-color: var(--loss-color); background-color: var(--loss-bg); }
+.match-row.result-tie { border-left-color: var(--tie-color); background-color: var(--tie-bg); }
+
+.match-result-title {
+  text-transform: uppercase;
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+.match-result-title.win { color: var(--win-color); }
+.match-result-title.loss { color: var(--loss-color); }
+.match-result-title.tie { color: var(--tie-color); }
+
+.match-team-name {
+  position: absolute;
+  bottom: -1rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .match-metadata {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.75rem;
+  min-width: 80px;
+  border-right: 1px solid var(--border-color);
 }
 
 .match-teams {
   display: flex;
-  justify-content: center;
+  flex: 1;
+  padding: 0.5rem 0.5rem 1.25rem 1rem;
   align-items: center;
 }
 
 .match-toggle {
-  text-align: right;
   display: flex;
+  align-items: flex-end;
   justify-content: flex-end;
-  align-items: center;
+  padding: 1rem;
 }
 
 .team-left {
   display: flex;
+  flex: 1;
   justify-content: flex-end;
   position: relative;
 }
 
 .team-right {
   display: flex;
+  flex: 1;
   justify-content: flex-start;
   position: relative;
 }
+
 
 .pokemon-grid {
   display: flex;
@@ -224,14 +296,14 @@ h2 {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 0 2px;
+  margin: 0 3px;
   background-color: var(--bg-surface-hover);
   border-radius: 8px;
 }
 
 .pokemon-icon {
-  width: 64px;
-  height: 64px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -247,11 +319,55 @@ h2 {
   font-weight: 900;
   font-size: 1rem;
   box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
-  margin: 0 2.5rem;
+  margin: 0 0.25rem;
   flex-shrink: 0;
 }
 .vs-badge span {
   display: inline-block;
+}
+
+/* Match Actions */
+.match-actions {
+  display: flex;
+  flex-direction: column;
+  width: 32px;
+  flex-shrink: 0;
+  z-index: 10;
+  border-left: 1px solid rgba(0,0,0,0.05);
+}
+
+.match-action-btn {
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.2s;
+}
+
+.delete-btn {
+  font-size: 1rem;
+  font-weight: 800;
+  height: 40px;
+  width: 100%;
+  background-color: #ef4444;
+}
+.delete-btn:hover {
+  filter: brightness(1.1);
+}
+
+.expand-btn {
+  font-size: 1.2rem;
+  font-weight: 700;
+  flex: 1;
+  width: 100%;
+}
+.expand-btn.win { background-color: var(--win-action); color: var(--win-text); }
+.expand-btn.loss { background-color: var(--loss-action); color: var(--loss-text); }
+.expand-btn.tie { background-color: var(--tie-action); color: var(--tie-text); }
+.expand-btn:hover {
+  filter: brightness(0.95);
 }
 
 /* Tablet Styles */
@@ -301,6 +417,24 @@ h2 {
     flex-direction: column;
     gap: 1.5rem;
     margin-top: -0.25rem;
+  }
+  
+  .match-actions {
+    flex-direction: row;
+    width: 100%;
+    height: 48px;
+    border-left: none;
+    border-top: 1px solid rgba(0,0,0,0.05);
+  }
+  
+  .delete-btn {
+    height: 100%;
+    width: 60px;
+  }
+  
+  .expand-btn {
+    height: 100%;
+    width: auto;
   }
   
   .match-toggle {

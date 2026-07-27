@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { parsePokepaste, formatPokeApiName, getShowdownSpriteName, calculateStat, NATURES, type ParsedPokemon } from '../lib/pokepaste';
 
+const enrichedCache = new Map<string, any[]>();
+
 interface ReferenceTabProps {
   pasteText: string;
 }
@@ -13,6 +15,15 @@ export function ReferenceTab({ pasteText }: ReferenceTabProps) {
 
   useEffect(() => {
     async function loadStats() {
+      if (!pasteText) return;
+      
+      if (enrichedCache.has(pasteText)) {
+        setTeam(enrichedCache.get(pasteText)!);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
       const parsed = parsePokepaste(pasteText);
       
       const enriched = await Promise.all(parsed.map(async (p) => {
@@ -57,6 +68,7 @@ export function ReferenceTab({ pasteText }: ReferenceTabProps) {
         }
         return p;
       }));
+      enrichedCache.set(pasteText, enriched);
       setTeam(enriched);
       setLoading(false);
     }
@@ -82,24 +94,24 @@ export function ReferenceTab({ pasteText }: ReferenceTabProps) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
       
       {/* Carousel Controls */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', alignItems: 'center', minHeight: '60px', marginBottom: '0.25rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'space-between', alignItems: 'center', minHeight: '80px', marginBottom: '1rem', padding: '0 1.5rem' }}>
         {team.map((pokemon, idx) => (
           <div 
             key={idx} 
             onClick={() => setCurrentIndex(idx)}
             style={{ 
               cursor: 'pointer',
-              opacity: idx === currentIndex ? 1 : 0.5,
+              opacity: idx === currentIndex ? 1 : 0.6,
               backgroundColor: idx === currentIndex ? '#fff' : 'transparent',
               boxShadow: idx === currentIndex ? '0 4px 12px rgba(0,0,0,0.1), 0 0 0 2px #4384f5' : 'none',
               borderRadius: '50%',
-              padding: '4px',
+              padding: '6px',
               transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: idx === currentIndex ? 54 : 44,
-              height: idx === currentIndex ? 54 : 44,
+              width: idx === currentIndex ? 76 : 56,
+              height: idx === currentIndex ? 76 : 56,
             }}
           >
             <img 
@@ -214,7 +226,7 @@ export function ReferenceTab({ pasteText }: ReferenceTabProps) {
                         fontSize: '1.1rem', 
                         fontWeight: 900, 
                         width: '10px', 
-                        color: natureSign === '+' ? 'var(--danger)' : natureSign === '-' ? 'var(--success)' : 'transparent',
+                        color: natureSign === '+' ? 'var(--success)' : natureSign === '-' ? 'var(--danger)' : 'transparent',
                         display: 'inline-block',
                         textAlign: 'left'
                       }}>

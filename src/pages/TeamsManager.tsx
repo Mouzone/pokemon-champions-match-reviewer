@@ -5,7 +5,8 @@ import { AppContext } from '../AppContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
-import { parsePokepaste, getShowdownSpriteName } from '../lib/pokepaste';
+import { parsePokepaste } from '../lib/pokepaste';
+import { PokemonIcon } from '../components/PokemonIcon';
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
 
 export default function TeamsManager() {
@@ -201,14 +202,12 @@ export default function TeamsManager() {
               </div>
               
               {parsedTeam.length > 0 && (
-                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', padding: '0 2rem' }}>
                   {parsedTeam.map((p, i) => (
-                    <div key={i} title={p.name} style={{ width: '64px', height: '64px', backgroundColor: 'var(--bg-surface-hover)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img 
-                        src={`https://play.pokemonshowdown.com/sprites/gen5/${getShowdownSpriteName(p.name)}.png`} 
-                        alt={p.name} 
+                    <div key={i} title={p.name} style={{ width: 'clamp(64px, 14%, 84px)', aspectRatio: '1/1', backgroundColor: 'var(--bg-surface-hover)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <PokemonIcon 
+                        name={p.name} 
                         style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                        onError={(e) => (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'}
                       />
                     </div>
                   ))}

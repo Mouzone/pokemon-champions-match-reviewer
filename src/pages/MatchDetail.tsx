@@ -10,7 +10,7 @@ import { OpponentTeamTab } from '../components/OpponentTeamTab';
 
 interface MatchDetailProps {
   match: Match & { teams: Team };
-  onMatchUpdate?: (updated: Match & { teams: Team }) => void;
+  onMatchUpdate?: (updated: (Match & { teams: Team }) | null) => void;
 }
 
 type TurnData = { events: string; notes: string; knowns: string; assumptions: string; id?: string };
@@ -169,7 +169,7 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
 
       {/* Right side: Annotation Tabs */}
       <div style={{ flex: '2 1 50%', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <div className="tabs-header" style={{ marginBottom: '1.5rem', borderBottom: '2px solid var(--text-primary)' }}>
+        <div className="tabs-header" style={{ marginBottom: '1.5rem', borderBottom: '2px solid var(--text-primary)', display: 'flex' }}>
           <button className={`tab-btn ${activeTab === 'reference' ? 'active' : ''}`} onClick={() => setActiveTab('reference')}>Reference</button>
           <button className={`tab-btn ${activeTab === 'notes' ? 'active' : ''}`} onClick={() => setActiveTab('notes')}>Notes</button>
           <button className={`tab-btn ${activeTab === 'improvements' ? 'active' : ''}`} onClick={() => setActiveTab('improvements')}>Improvements</button>
@@ -311,6 +311,26 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
             
             {referenceSubTab === 'myTeam' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontWeight: 800, textTransform: 'uppercase' }}>Match Result:</span>
+                  <select 
+                    value={match.result}
+                    onChange={async (e) => {
+                      const newResult = e.target.value;
+                      const { error } = await supabase.from('matches').update({ result: newResult }).eq('id', match.id);
+                      if (!error && onMatchUpdate) {
+                        onMatchUpdate({ ...match, result: newResult as 'win' | 'loss' | 'tie' });
+                      }
+                    }}
+                    className="input-field"
+                    style={{ flex: 1 }}
+                  >
+                    <option value="win">Win</option>
+                    <option value="loss">Loss</option>
+                    <option value="tie">Tie</option>
+                  </select>
+                </div>
+                
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <span style={{ fontWeight: 800, textTransform: 'uppercase' }}>Select Team:</span>
                   <select 
