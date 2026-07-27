@@ -208,10 +208,7 @@ export default function Home() {
       </div>
 
       <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)}>
-        <UploadMatch onSuccess={() => {
-          setIsUploadModalOpen(false);
-          fetchMatches();
-        }} />
+        <UploadMatch />
       </Modal>
     </div>
   );
