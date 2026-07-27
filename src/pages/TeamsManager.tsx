@@ -202,7 +202,7 @@ export default function TeamsManager() {
               </div>
               
               {parsedTeam.length > 0 && (
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', padding: '0 2rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', padding: '0 4rem' }}>
                   {parsedTeam.map((p, i) => (
                     <div key={i} title={p.name} style={{ width: 'clamp(64px, 14%, 84px)', aspectRatio: '1/1', backgroundColor: 'var(--bg-surface-hover)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <PokemonIcon 
