@@ -121,7 +121,7 @@ export default function Home() {
                     setMatches(matches.filter(m => m.id !== match.id));
                     setExpandedMatchId(null);
                   } else {
-                    setMatches(matches.map(m => m.id === updated.id ? { ...updated, teams: match.teams } : m));
+                    setMatches(matches.map(m => m.id === updated.id ? updated : m));
                   }
                 }} />
               )}
