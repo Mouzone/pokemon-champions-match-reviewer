@@ -52,3 +52,15 @@ CREATE POLICY "Allow public uploads to team_images" ON storage.objects FOR INSER
 CREATE POLICY "Allow public read of team_images" ON storage.objects FOR SELECT TO public USING (bucket_id = 'team_images');
 CREATE POLICY "Allow public updates to team_images" ON storage.objects FOR UPDATE TO public USING (bucket_id = 'team_images');
 CREATE POLICY "Allow public deletes of team_images" ON storage.objects FOR DELETE TO public USING (bucket_id = 'team_images');
+
+-- 6. Setup Match Videos Bucket
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('match_videos', 'match_videos', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- Set up Match Videos RLS Policies
+-- Allow public uploads to match_videos so the iOS shortcut can upload without auth
+CREATE POLICY "Allow public uploads to match_videos" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'match_videos');
+CREATE POLICY "Allow public read of match_videos" ON storage.objects FOR SELECT TO public USING (bucket_id = 'match_videos');
+CREATE POLICY "Allow public updates to match_videos" ON storage.objects FOR UPDATE TO public USING (bucket_id = 'match_videos');
+CREATE POLICY "Allow public deletes of match_videos" ON storage.objects FOR DELETE TO public USING (bucket_id = 'match_videos');

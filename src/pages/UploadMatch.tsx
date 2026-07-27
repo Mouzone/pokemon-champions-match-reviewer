@@ -1,196 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import type { Team, Result } from '../lib/types';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
+import React from 'react';
 
-import { PokemonSearch } from '../components/PokemonSearch';
-import { getShowdownSpriteName } from '../lib/pokepaste';
-
-export default function UploadMatch({ onSuccess }: { onSuccess?: () => void }) {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState('');
-  const [playedAt, setPlayedAt] = useState('');
-  const [opponentPokemon, setOpponentPokemon] = useState<{ name: string, id: string }[]>([]);
-  const [result, setResult] = useState<Result>('win');
-  const [videoUrl, setVideoUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetchTeams();
-    // Default to current time for playedAt
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    setPlayedAt(now.toISOString().slice(0,16));
-  }, []);
-
-  const fetchTeams = async () => {
-    const { data } = await supabase.from('teams').select('*').order('created_at', { ascending: false });
-    if (data) {
-      setTeams(data);
-      if (data.length > 0) setSelectedTeam(data[0].id);
-    }
-  };
-
-  const handleAddPokemon = (pokemon: { name: string, id: string }) => {
-    if (opponentPokemon.length < 6 && !opponentPokemon.find(p => p.name === pokemon.name)) {
-      setOpponentPokemon([...opponentPokemon, pokemon]);
-    }
-  };
-
-  const removePokemon = (name: string) => {
-    setOpponentPokemon(opponentPokemon.filter(p => p.name !== name));
-  };
-
-  const handleUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!videoUrl || !selectedTeam) {
-      alert('Please provide a YouTube URL and select a team.');
-      return;
-    }
-    if (!videoUrl.includes('youtube.com') && !videoUrl.includes('youtu.be')) {
-      alert('Please provide a valid YouTube URL (must contain youtube.com or youtu.be).');
-      return;
-    }
-    setLoading(true);
-
-    try {
-      // 2. Insert match record
-      const { error: dbError } = await supabase.from('matches').insert([
-        {
-          played_at: new Date(playedAt).toISOString(),
-          opponent_team: opponentPokemon,
-          own_team_id: selectedTeam,
-          result: result,
-          video_url: videoUrl
-        }
-      ]);
-
-      if (dbError) throw dbError;
-
-      alert('Match uploaded successfully!');
-      if (onSuccess) {
-        onSuccess();
-      }
-      // Reset form
-      setVideoUrl('');
-      setOpponentPokemon([]);
-      setResult('win');
-    } catch (err: any) {
-      console.error('Upload error:', err);
-      alert('Error uploading match: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export default function UploadMatch() {
   return (
     <>
       <div className="modal-header">
-        <h2>Upload Match</h2>
+        <h2>Automated Upload Setup</h2>
       </div>
-      <div className="modal-body">
-        <form onSubmit={handleUpload} className="flex flex-col gap-4">
-          
-          <div className="input-wrapper">
-            <label className="input-label">YouTube URL</label>
-            <input 
-              type="url" 
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)} 
-              placeholder="e.g. https://youtube.com/watch?v=..."
-              className="input-field" 
-              required 
-            />
-          </div>
+      <div className="modal-body" style={{ lineHeight: '1.6' }}>
+        <p style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+          We've completely overhauled how you upload matches. You no longer need to manually copy YouTube links or fill out forms here. Everything is now automated directly from your iPhone!
+        </p>
 
-          <Input 
-            label="Date and Time Played" 
-            type="datetime-local" 
-            value={playedAt} 
-            onChange={(e) => setPlayedAt(e.target.value)} 
-            required 
-          />
+        <h3 style={{ marginTop: '2rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>How to Set Up the iOS Shortcut</h3>
+        
+        <ol style={{ marginLeft: '1.5rem', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <li>
+            <strong>Open the Shortcuts app</strong> on your iPhone and create a new Shortcut.
+          </li>
+          <li>
+            <strong>Add Action: Select Photos</strong> - Configure it to only include "Videos".
+          </li>
+          <li>
+            <strong>Add Action: Encode Media</strong> - Set it to resize the video to 720p with HEVC turned on (this shrinks the 1GB video to a manageable size).
+          </li>
+          <li>
+            <strong>Add Action: Get Contents of URL</strong> - This is the magic step. Set the URL to your Supabase Edge Function endpoint: 
+            <br />
+            <code style={{ background: 'var(--bg-surface)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.9em', display: 'inline-block', marginTop: '0.5rem' }}>
+              https://YOUR_PROJECT_REF.supabase.co/functions/v1/process-match
+            </code>
+          </li>
+          <li>
+            <strong>Configure the URL Action:</strong>
+            <ul style={{ marginLeft: '1.5rem', marginTop: '0.5rem' }}>
+              <li>Change Method to <strong>POST</strong></li>
+              <li>Add Header: <code>Authorization</code> = <code>Bearer YOUR_SUPABASE_ANON_KEY</code></li>
+              <li>Add Request Body: Set it to "Form" or "JSON" passing the <strong>Encoded Media</strong> and your chosen Team ID.</li>
+            </ul>
+          </li>
+        </ol>
 
-          <div className="input-wrapper">
-            <label className="input-label">Your Team</label>
-            <select 
-              className="input-field" 
-              value={selectedTeam} 
-              onChange={(e) => setSelectedTeam(e.target.value)}
-              required
-            >
-              <option value="" disabled>Select a team...</option>
-              {teams.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="input-wrapper">
-            <label className="input-label">Opponent's Team (Optional, select up to 6)</label>
-            <PokemonSearch onSelect={handleAddPokemon} />
-            
-            {opponentPokemon.length > 0 && (
-              <div className="flex gap-2" style={{ marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                {opponentPokemon.map(p => (
-                  <div key={p.name} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    backgroundColor: 'var(--bg-base)',
-                    padding: '0.5rem',
-                    borderBottom: '2px solid var(--text-primary)'
-                  }}>
-                    <img src={`https://play.pokemonshowdown.com/sprites/gen5/${getShowdownSpriteName(p.name)}.png`} alt={p.name} style={{ width: 48, height: 48, objectFit: 'contain' }} onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png';
-                    }}/>
-                    <span style={{ textTransform: 'capitalize', fontWeight: 500 }}>{p.name.replace('-', ' ')}</span>
-                    <button type="button" onClick={() => removePokemon(p.name)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', marginLeft: '0.5rem', fontWeight: 700 }}>✕</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="input-wrapper">
-            <label className="input-label">Result</label>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {(['win', 'loss', 'tie'] as const).map(res => (
-                <button
-                  key={res}
-                  type="button"
-                  onClick={() => setResult(res)}
-                  style={{
-                    flex: 1,
-                    padding: '0.5rem',
-                    border: '2px solid',
-                    borderColor: result === res ? 'var(--text-primary)' : '#e5e7eb',
-                    background: result === res ? 'var(--text-primary)' : 'var(--bg-surface)',
-                    color: result === res ? 'var(--bg-base)' : 'var(--text-secondary)',
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {res}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <Button type="submit" disabled={loading || !videoUrl || !selectedTeam}>
-            {loading ? 'Processing...' : 'Upload Match'}
-          </Button>
-          {loading && (
-            <div style={{ textAlign: 'center', width: '100%' }}>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                Saving match...
-              </p>
-            </div>
-          )}
-        </form>
+        <div style={{ padding: '1rem', backgroundColor: 'var(--bg-surface)', borderLeft: '4px solid var(--primary)', borderRadius: '0 4px 4px 0' }}>
+          <h4 style={{ margin: '0 0 0.5rem 0' }}>How it works under the hood</h4>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            When you run the shortcut, it instantly compresses your screen recording and sends it to your Supabase server. Our custom Edge Function then analyzes the video with Gemini AI, automatically uploads it to your YouTube channel, and saves all the match details into your database without you having to lift a finger.
+          </p>
+        </div>
       </div>
     </>
   );
