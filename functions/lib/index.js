@@ -16,7 +16,7 @@ exports.processMatch = (0, storage_1.onObjectFinalized)({ region: "us-east1", ti
     }
     console.log(`Processing video: ${filePath} in bucket ${fileBucket}`);
     const PROJECT_ID = process.env.GCLOUD_PROJECT || "matchreviewer-automation";
-    const LOCATION = "us-east1"; // Vertex AI location
+    const LOCATION = "us-central1"; // Vertex AI location
     try {
         // Fetch teams
         const db = (0, firestore_1.getFirestore)();
@@ -54,7 +54,7 @@ Output MUST be valid JSON matching this exact schema:
   "result": "string (must be exactly 'win', 'loss', or 'tie')"
 }`;
         const request = {
-            model: 'gemini-1.5-flash',
+            model: 'gemini-3.5-flash',
             contents: [{
                     role: 'user',
                     parts: [

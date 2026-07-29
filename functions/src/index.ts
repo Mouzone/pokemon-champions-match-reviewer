@@ -19,7 +19,7 @@ export const processMatch = onObjectFinalized({ region: "us-east1", timeoutSecon
   console.log(`Processing video: ${filePath} in bucket ${fileBucket}`);
 
   const PROJECT_ID = process.env.GCLOUD_PROJECT || "matchreviewer-automation";
-  const LOCATION = "us-east1"; // Vertex AI location
+  const LOCATION = "us-central1"; // Vertex AI location
 
   try {
     // Fetch teams
@@ -63,7 +63,7 @@ Output MUST be valid JSON matching this exact schema:
 }`;
 
     const request = {
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.5-flash',
       contents: [{
         role: 'user',
         parts: [
