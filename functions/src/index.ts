@@ -45,6 +45,7 @@ async function runVideoReview(fileBucket: string, filePath: string, contentType:
 
 CRITICAL INSTRUCTIONS:
 - Ensure all identified Pokemon are legal and available in the most recent VGC regulation as of today's date.
+- VERY IMPORTANT: Before finalizing your list, verify that every Pokemon you identified is legally permitted in the CURRENT active VGC regulation for this date. Absolutely DO NOT include Mythical Pokemon or banned legendaries unless they are explicitly legal right now. If you see an illegal Pokemon, you have likely misidentified it; look closer and correct your identification.
 - Pay close attention to alternate forms. Format names strictly in lowercase and hyphenated (e.g., "urshifu-rapid-strike", "urshifu-single-strike", "ogerpon-hearthflame", "ogerpon-wellspring", "landorus-therian", "tornadus-incarnate", "calyrex-shadow", "calyrex-ice", "ursaluna-bloodmoon", "flutter-mane", "raging-bolt").
 
 Task 1: Identify My Team
