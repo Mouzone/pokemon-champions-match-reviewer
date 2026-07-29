@@ -148,7 +148,7 @@ Output MUST be valid JSON matching this exact schema:
         throw error;
     }
 }
-exports.processMatch = (0, storage_1.onObjectFinalized)({ region: "us-central1", timeoutSeconds: 540, memory: "512MiB" }, async (event) => {
+exports.processMatch = (0, storage_1.onObjectFinalized)({ region: "us-east1", timeoutSeconds: 540, memory: "512MiB" }, async (event) => {
     const fileBucket = event.data.bucket;
     const filePath = event.data.name;
     const contentType = event.data.contentType;
@@ -160,7 +160,7 @@ exports.processMatch = (0, storage_1.onObjectFinalized)({ region: "us-central1",
     const jobId = filePath.replace(/[^a-zA-Z0-9]/g, '_');
     await runVideoReview(fileBucket, filePath, contentType, jobId);
 });
-exports.manualProcessMatch = (0, https_1.onCall)({ region: "us-central1", timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
+exports.manualProcessMatch = (0, https_1.onCall)({ region: "us-east1", timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
     const { filePath } = request.data;
     if (!filePath) {
         throw new https_1.HttpsError('invalid-argument', 'The function must be called with one argument "filePath".');

@@ -158,7 +158,7 @@ Output MUST be valid JSON matching this exact schema:
   }
 }
 
-export const processMatch = onObjectFinalized({ region: "us-central1", timeoutSeconds: 540, memory: "512MiB" }, async (event) => {
+export const processMatch = onObjectFinalized({ region: "us-east1", timeoutSeconds: 540, memory: "512MiB" }, async (event) => {
   const fileBucket = event.data.bucket;
   const filePath = event.data.name;
   const contentType = event.data.contentType;
@@ -173,7 +173,7 @@ export const processMatch = onObjectFinalized({ region: "us-central1", timeoutSe
   await runVideoReview(fileBucket, filePath, contentType, jobId);
 });
 
-export const manualProcessMatch = onCall({ region: "us-central1", timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
+export const manualProcessMatch = onCall({ region: "us-east1", timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
   const { filePath } = request.data;
   if (!filePath) {
     throw new HttpsError('invalid-argument', 'The function must be called with one argument "filePath".');

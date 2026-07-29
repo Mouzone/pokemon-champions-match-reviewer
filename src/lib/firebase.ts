@@ -16,4 +16,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const functions = getFunctions(app, 'us-central1'); // Since Cloud Function is deployed in us-central1
+export const functions = getFunctions(app, 'us-east1'); // Since Cloud Function is deployed in us-east1
