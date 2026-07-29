@@ -18,7 +18,7 @@ async function runVideoReview(fileBucket: string, filePath: string, contentType:
       video_url: `gs://${fileBucket}/${filePath}`
     });
 
-    const PROJECT_ID = process.env.GCLOUD_PROJECT || "matchreviewer-automation";
+    const PROJECT_ID = process.env.GCLOUD_PROJECT || "pokemon-champions-match-reviewer";
     const LOCATION = "us-central1"; // Vertex AI location
 
     // Fetch teams
@@ -158,7 +158,7 @@ Output MUST be valid JSON matching this exact schema:
   }
 }
 
-export const processMatch = onObjectFinalized({ region: "us-east1", timeoutSeconds: 540, memory: "512MiB" }, async (event) => {
+export const processMatch = onObjectFinalized({ region: "us-central1", timeoutSeconds: 540, memory: "512MiB" }, async (event) => {
   const fileBucket = event.data.bucket;
   const filePath = event.data.name;
   const contentType = event.data.contentType;
@@ -173,13 +173,13 @@ export const processMatch = onObjectFinalized({ region: "us-east1", timeoutSecon
   await runVideoReview(fileBucket, filePath, contentType, jobId);
 });
 
-export const manualProcessMatch = onCall({ region: "us-east1", timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
+export const manualProcessMatch = onCall({ region: "us-central1", timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
   const { filePath } = request.data;
   if (!filePath) {
     throw new HttpsError('invalid-argument', 'The function must be called with one argument "filePath".');
   }
 
-  const fileBucket = "matchreviewer-automation.firebasestorage.app"; // Default bucket
+  const fileBucket = "pokemon-champions-match-reviewer.firebasestorage.app"; // Default bucket
   const contentType = "video/mp4"; // Assume video for manual processing
   
   const jobId = filePath.replace(/[^a-zA-Z0-9]/g, '_') + '_manual_' + Date.now();

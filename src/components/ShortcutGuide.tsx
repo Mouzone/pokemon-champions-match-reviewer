@@ -18,7 +18,7 @@ export function ShortcutGuide() {
           <li>Add Action: <strong>URL</strong><br/>
               <span style={{ fontSize: '0.9em', opacity: 0.8 }}>Paste this exact URL, inserting the <em>Formatted Date</em> variable at the end:</span><br/>
               <code style={{ wordBreak: 'break-all', display: 'block', margin: '0.5rem 0', padding: '0.5rem', backgroundColor: 'var(--bg-surface-hover)' }}>
-                https://firebasestorage.googleapis.com/v0/b/matchreviewer-automation.firebasestorage.app/o?name=videos/Match_[Formatted Date].mp4
+                https://firebasestorage.googleapis.com/v0/b/pokemon-champions-match-reviewer.firebasestorage.app/o?name=videos/Match_[Formatted Date].mp4
               </code>
           </li>
           <li>Add Action: <strong>Get Contents of URL</strong><br/>

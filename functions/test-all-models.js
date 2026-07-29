@@ -14,7 +14,7 @@ async function run() {
   ];
   
   for (const m of models) {
-    const ai = new GoogleGenAI({ vertexai: true, project: "matchreviewer-automation", location: "us-central1" });
+    const ai = new GoogleGenAI({ vertexai: true, project: "pokemon-champions-match-reviewer", location: "us-central1" });
     try {
       await ai.models.generateContent({ model: m, contents: "Hi" });
       console.log(`SUCCESS: ${m}`);
