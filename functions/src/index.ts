@@ -6,7 +6,7 @@ import { VertexAI } from "@google-cloud/vertexai";
 
 initializeApp();
 
-export const processMatch = onObjectFinalized({ timeoutSeconds: 540, memory: "512MiB" }, async (event) => {
+export const processMatch = onObjectFinalized({ region: "us-east1", timeoutSeconds: 540, memory: "512MiB" }, async (event) => {
   const fileBucket = event.data.bucket; // Storage bucket containing the file.
   const filePath = event.data.name; // File path in the bucket.
   const contentType = event.data.contentType; // File content type.

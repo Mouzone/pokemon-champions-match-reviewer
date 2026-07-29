@@ -6,7 +6,7 @@ const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const vertexai_1 = require("@google-cloud/vertexai");
 (0, app_1.initializeApp)();
-exports.processMatch = (0, storage_1.onObjectFinalized)({ timeoutSeconds: 540, memory: "512MiB" }, async (event) => {
+exports.processMatch = (0, storage_1.onObjectFinalized)({ region: "us-east1", timeoutSeconds: 540, memory: "512MiB" }, async (event) => {
     var _a, _b;
     const fileBucket = event.data.bucket; // Storage bucket containing the file.
     const filePath = event.data.name; // File path in the bucket.
