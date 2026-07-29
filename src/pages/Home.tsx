@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { db } from '../lib/firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
 import type { Match, Team } from '../lib/types';
 import { AppContext } from '../AppContext';
 import { Modal } from '../components/ui/Modal';
@@ -22,38 +22,46 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchMatches();
+    let unsubscribeMatches: () => void;
+    let teamsMap: Record<string, Team> = {};
+
+    const setupListeners = async () => {
+      try {
+        // Fetch teams mapping once (since teams change rarely)
+        const teamsSnap = await getDocs(collection(db, 'teams'));
+        teamsSnap.docs.forEach(d => {
+          teamsMap[d.id] = { id: d.id, ...d.data() } as Team;
+        });
+
+        // Listen to matches in real-time
+        const q = query(collection(db, 'matches'), orderBy('played_at', 'desc'));
+        unsubscribeMatches = onSnapshot(q, (matchesSnap) => {
+          const rawMatches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Match));
+          const fetchedMatches = rawMatches.map(m => ({
+            ...m,
+            teams: m.own_team_id ? teamsMap[m.own_team_id] : (null as unknown as Team)
+          }));
+
+          // Explicit JS sorting to guarantee the most recent matches appear at the top
+          fetchedMatches.sort((a: any, b: any) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
+          setMatches(fetchedMatches);
+          setLoading(false);
+        }, (error) => {
+          console.error('Error fetching matches:', error);
+          setLoading(false);
+        });
+      } catch (error) {
+        console.error('Error setting up listeners:', error);
+        setLoading(false);
+      }
+    };
+
+    setupListeners();
+
+    return () => {
+      if (unsubscribeMatches) unsubscribeMatches();
+    };
   }, []);
-
-  const fetchMatches = async () => {
-    try {
-      // 1. Fetch all matches
-      const q = query(collection(db, 'matches'), orderBy('played_at', 'desc'));
-      const matchesSnap = await getDocs(q);
-      const rawMatches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Match));
-      
-      // 2. Fetch teams mapping
-      const teamsSnap = await getDocs(collection(db, 'teams'));
-      const teamsMap: Record<string, Team> = {};
-      teamsSnap.docs.forEach(d => {
-        teamsMap[d.id] = { id: d.id, ...d.data() } as Team;
-      });
-
-      // 3. Combine
-      const fetchedMatches = rawMatches.map(m => ({
-        ...m,
-        teams: m.own_team_id ? teamsMap[m.own_team_id] : (null as unknown as Team)
-      }));
-
-      // Explicit JS sorting to guarantee the most recent matches appear at the top
-      fetchedMatches.sort((a: any, b: any) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
-      setMatches(fetchedMatches);
-    } catch (error) {
-      console.error('Error fetching matches:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="page-container">
@@ -143,7 +151,6 @@ export default function Home() {
       <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)}>
         <UploadMatch onSuccess={() => {
           setIsUploadModalOpen(false);
-          fetchMatches();
         }} />
       </Modal>
 

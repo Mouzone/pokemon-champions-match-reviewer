@@ -42,16 +42,17 @@ CRITICAL INSTRUCTIONS:
 - Pay close attention to alternate forms. Format names strictly in lowercase and hyphenated (e.g., "urshifu-rapid-strike", "urshifu-single-strike", "ogerpon-hearthflame", "ogerpon-wellspring", "landorus-therian", "tornadus-incarnate", "calyrex-shadow", "calyrex-ice", "ursaluna-bloodmoon", "flutter-mane", "raging-bolt").
 
 Task 1: Identify My Team
-- At Team Preview, there are 12 Pokemon shown (6 for each player).
-- Below is a list of my saved teams. Analyze all 12 Pokemon on screen and find which group of 6 perfectly matches (or most closely matches) one of my saved teams.
+- Look at the Team Preview screen. There are 12 Pokemon shown (6 for me on one side, 6 for the opponent on the other).
+- Below is a list of my saved teams. Analyze all 12 Pokemon on the Team Preview screen and find which group of 6 perfectly matches (or most closely matches) one of my saved teams.
 - Save the ID of the matched team.
 
 My Saved Teams:
 ${teamListString}
 
 Task 2: Identify the Opponent's Team
-- The Pokemon on Team Preview that DO NOT belong to my matched team are the opponent's Pokemon.
-- If the video skips Team Preview, identify as many of the opponent's Pokemon as appear during the actual battle (could be only 3 or 4).
+- The 6 Pokemon on Team Preview that DO NOT belong to my matched team are the opponent's Pokemon.
+- YOU MUST output ALL 6 of the opponent's Pokemon from the Team Preview screen. Do not just list the 3 or 4 that were brought into the battle.
+- ONLY if the video completely skips the Team Preview screen (meaning it starts directly in the middle of a battle), identify the 3 or 4 opponent Pokemon that appear during the battle. Otherwise, always return exactly 6.
 
 Task 3: Determine the Match Result
 - Watch the end of the video. Determine if I (the recording player) won, lost, or tied. 
