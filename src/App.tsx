@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import { AppContext } from './AppContext';
+import { GlobalProgress } from './components/GlobalProgress';
 import Home from './pages/Home';
 import UploadMatch from './pages/UploadMatch';
 import TeamsManager from './pages/TeamsManager';
@@ -50,6 +51,7 @@ function App() {
               <Route path="/match/:id" element={<UploadMatch />} />
             </Routes>
           </main>
+          <GlobalProgress />
         </div>
       </Router>
     </AppContext.Provider>
