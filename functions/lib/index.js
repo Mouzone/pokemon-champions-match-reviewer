@@ -17,7 +17,7 @@ async function runVideoReview(fileBucket, filePath, contentType, jobId) {
             started_at: firestore_1.FieldValue.serverTimestamp(),
             video_url: `gs://${fileBucket}/${filePath}`
         });
-        const PROJECT_ID = process.env.GCLOUD_PROJECT || "pokemon-champions-match-reviewer";
+        const PROJECT_ID = process.env.GCLOUD_PROJECT || "matchreviewer-automation";
         const LOCATION = "us-central1"; // Vertex AI location
         // Fetch teams
         const teamsSnap = await db.collection('teams').get();
@@ -165,7 +165,7 @@ exports.manualProcessMatch = (0, https_1.onCall)({ region: "us-central1", timeou
     if (!filePath) {
         throw new https_1.HttpsError('invalid-argument', 'The function must be called with one argument "filePath".');
     }
-    const fileBucket = "pokemon-champions-match-reviewer.firebasestorage.app"; // Default bucket
+    const fileBucket = "matchreviewer-automation.firebasestorage.app"; // Default bucket
     const contentType = "video/mp4"; // Assume video for manual processing
     const jobId = filePath.replace(/[^a-zA-Z0-9]/g, '_') + '_manual_' + Date.now();
     await runVideoReview(fileBucket, filePath, contentType, jobId);

@@ -3,7 +3,7 @@ const { GoogleGenAI } = require("@google/genai");
 async function testModel(modelName, location) {
   const ai = new GoogleGenAI({ 
     vertexai: true,
-    project: process.env.GCLOUD_PROJECT || "pokemon-champions-match-reviewer", 
+    project: process.env.GCLOUD_PROJECT || "matchreviewer-automation", 
     location: location 
   });
   
