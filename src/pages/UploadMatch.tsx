@@ -43,7 +43,7 @@ export default function UploadMatch({ onSuccess }: UploadMatchProps) {
     if (activeTab === 'storage' && files.length === 0) {
       fetchStorageFiles();
     }
-  }, [activeTab]);
+  }, [activeTab, files.length]);
 
   const fetchTeams = async () => {
     try {

@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 're
 import { AppContext } from './AppContext';
 import { GlobalProgress } from './components/GlobalProgress';
 import Home from './pages/Home';
-import UploadMatch from './pages/UploadMatch';
 import TeamsManager from './pages/TeamsManager';
 
 
@@ -48,7 +47,6 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/teams" element={<TeamsManager />} />
-              <Route path="/match/:id" element={<UploadMatch />} />
             </Routes>
           </main>
           <GlobalProgress />
