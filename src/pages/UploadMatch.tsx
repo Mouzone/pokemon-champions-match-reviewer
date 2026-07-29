@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { db, storage, functions } from '../lib/firebase';
 import { collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, listAll, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
+import { ref, listAll, getDownloadURL } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
 import type { Team } from '../lib/types';
 import { Button } from '../components/ui/Button';
@@ -29,7 +29,6 @@ export default function UploadMatch({ onSuccess }: UploadMatchProps) {
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   
   // Shared State
   const [saving, setSaving] = useState(false);
@@ -129,37 +128,6 @@ export default function UploadMatch({ onSuccess }: UploadMatchProps) {
     }
   };
 
-  const handleLocalUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Use a timestamp in the name to match iOS shortcut style
-    const fileName = `Match_${new Date().toISOString().replace(/[:.]/g, '-')}.mp4`;
-    const fileRef = ref(storage, `videos/${fileName}`);
-    const uploadTask = uploadBytesResumable(fileRef, file, { contentType: file.type });
-
-    setUploadProgress(0);
-    setError(null);
-
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      },
-      (error) => {
-        console.error("Upload error:", error);
-        setError("Failed to upload local file.");
-        setUploadProgress(null);
-      },
-      () => {
-        setUploadProgress(null);
-        // Refresh the list
-        fetchStorageFiles();
-      }
-    );
-  };
-
   const VideoPreview = ({ src }: { src: string }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     
@@ -255,19 +223,6 @@ export default function UploadMatch({ onSuccess }: UploadMatchProps) {
 
         {activeTab === 'storage' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ padding: '1rem', background: 'var(--bg-hover)', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
-              <h4 style={{ margin: '0 0 0.5rem 0' }}>Test Local Upload</h4>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                Upload a video from your computer directly into Firebase Storage to test the automated pipeline without using your mobile device.
-              </p>
-              <input type="file" accept="video/mp4,video/quicktime" onChange={handleLocalUpload} disabled={uploadProgress !== null} />
-              {uploadProgress !== null && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--primary-color)' }}>
-                  Uploading: {uploadProgress.toFixed(0)}%
-                </div>
-              )}
-            </div>
-
             <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
               {loadingFiles ? (
                 <div>Loading videos from storage...</div>
