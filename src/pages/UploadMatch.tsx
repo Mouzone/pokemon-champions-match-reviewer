@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { Team } from '../lib/types';
 import { Button } from '../components/ui/Button';
 
@@ -20,12 +21,16 @@ export default function UploadMatch({ onSuccess }: UploadMatchProps) {
   }, []);
 
   const fetchTeams = async () => {
-    const { data } = await supabase.from('teams').select('*').order('created_at', { ascending: false });
-    if (data) {
-      setTeams(data as Team[]);
-      if (data.length > 0) {
-        setTeamId(data[0].id);
+    try {
+      const q = query(collection(db, 'teams'), orderBy('created_at', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const fetchedTeams = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+      setTeams(fetchedTeams);
+      if (fetchedTeams.length > 0) {
+        setTeamId(fetchedTeams[0].id);
       }
+    } catch (err) {
+      console.error('Error fetching teams', err);
     }
   };
 
@@ -38,20 +43,20 @@ export default function UploadMatch({ onSuccess }: UploadMatchProps) {
     setSaving(true);
     setError(null);
     
-    const { error: insertError } = await supabase.from('matches').insert([{
-      played_at: new Date().toISOString(),
-      video_url: url,
-      result: result,
-      own_team_id: teamId || null,
-      opponent_team: []
-    }]);
-
-    setSaving(false);
-
-    if (insertError) {
-      setError(insertError.message);
-    } else {
+    try {
+      await addDoc(collection(db, 'matches'), {
+        played_at: new Date().toISOString(),
+        video_url: url,
+        result: result,
+        own_team_id: teamId || null,
+        opponent_team: [],
+        created_at: serverTimestamp()
+      });
       if (onSuccess) onSuccess();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 

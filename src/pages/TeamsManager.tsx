@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import type { Team } from '../lib/types';
 import { AppContext } from '../AppContext';
 import { Button } from '../components/ui/Button';
@@ -27,13 +28,16 @@ export default function TeamsManager() {
 
   const fetchTeams = async () => {
     setFetching(true);
-    const { data, error } = await supabase.from('teams').select('*').order('created_at', { ascending: false });
-    if (error) {
+    try {
+      const q = query(collection(db, 'teams'), orderBy('created_at', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const fetchedTeams = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+      setTeams(fetchedTeams);
+    } catch (error) {
       console.error('Error fetching teams:', error);
-    } else {
-      setTeams(data || []);
+    } finally {
+      setFetching(false);
     }
-    setFetching(false);
   };
 
   const handleEditClick = (team: Team) => {
@@ -47,8 +51,7 @@ export default function TeamsManager() {
   const handleDeleteTeam = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this team?')) return;
     try {
-      const { error } = await supabase.from('teams').delete().eq('id', id);
-      if (error) throw error;
+      await deleteDoc(doc(db, 'teams', id));
       fetchTeams();
     } catch (error) {
       console.error('Error deleting team:', error);
@@ -64,19 +67,16 @@ export default function TeamsManager() {
 
     try {
       if (editingTeamId) {
-        const { error } = await supabase.from('teams').update({
+        await updateDoc(doc(db, 'teams', editingTeamId), {
           name,
           paste_text: pasteText
-        }).eq('id', editingTeamId);
-        if (error) throw error;
+        });
       } else {
-        const { error } = await supabase.from('teams').insert([
-          { 
-            name, 
-            paste_text: pasteText
-          }
-        ]);
-        if (error) throw error;
+        await addDoc(collection(db, 'teams'), {
+          name,
+          paste_text: pasteText,
+          created_at: serverTimestamp()
+        });
       }
 
       setName('');
@@ -101,36 +101,33 @@ export default function TeamsManager() {
           <button onClick={() => setIsDrawerOpen(true)} style={{ background: 'none', border: 'none', fontSize: '1.75rem', cursor: 'pointer', padding: 0, color: 'var(--text-primary)' }}>☰</button>
           TEAMS
         </h1>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <button 
+            onClick={() => {
+              setEditingTeamId(null);
+              setName('');
+              setPasteText('');
+              setIsCreateModalOpen(true);
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '1rem',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              opacity: 0.6,
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0.25rem'
+            }}
+            title="Create New Team"
+          >
+            + Create Team
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col" style={{ gap: '0.5rem' }}>
-        {/* Create Team Placeholder Card */}
-        <div 
-          onClick={() => {
-            setEditingTeamId(null);
-            setName('');
-            setPasteText('');
-            setIsCreateModalOpen(true);
-          }}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            padding: '2rem',
-            border: '2px dashed var(--text-primary)',
-            transition: 'background-color 0.2s',
-            cursor: 'pointer',
-            minHeight: '120px'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-        >
-          <span style={{ fontSize: '3rem', fontWeight: 700, color: 'var(--text-primary)' }}>+</span>
-        </div>
 
         {fetching ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>

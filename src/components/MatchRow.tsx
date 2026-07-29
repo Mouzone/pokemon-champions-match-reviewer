@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import type { Match, Team } from '../lib/types';
 import { parsePokepaste } from '../lib/pokepaste';
 import { PokemonIcon } from './PokemonIcon';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
 
 interface MatchRowProps {
   match: Match & { teams: Team };
@@ -18,10 +19,10 @@ export const MatchRow: React.FC<MatchRowProps> = React.memo(({ match, expanded, 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm("Are you sure you want to delete this match record? This cannot be undone.")) {
-      const { error } = await supabase.from('matches').delete().eq('id', match.id);
-      if (!error) {
+      try {
+        await deleteDoc(doc(db, 'matches', match.id));
         onDelete(match.id);
-      } else {
+      } catch (error: any) {
         alert(`Error deleting match: ${error.message}`);
       }
     }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, orderBy, getDocs, doc, updateDoc, addDoc, where } from 'firebase/firestore';
 import type { Match, Team } from '../lib/types';
 
 import { Button } from '../components/ui/Button';
@@ -38,24 +39,45 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
     { value: 'assumptions', label: 'ASSUMPTIONS' },
   ];
 
+  const [videoSrc, setVideoSrc] = useState<string>('');
+
   useEffect(() => {
     fetchNotes();
     fetchTeams();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match.id]);
 
+  useEffect(() => {
+    if (match.video_url?.startsWith('gs://')) {
+      import('firebase/storage').then(({ getStorage, ref, getDownloadURL }) => {
+        const storage = getStorage();
+        getDownloadURL(ref(storage, match.video_url)).then(setVideoSrc).catch(console.error);
+      });
+    } else {
+      setVideoSrc(match.video_url || '');
+    }
+  }, [match.video_url]);
+
   const fetchTeams = async () => {
-    const { data } = await supabase.from('teams').select('*').order('created_at', { ascending: false });
-    if (data) setAllTeams(data as Team[]);
+    try {
+      const q = query(collection(db, 'teams'), orderBy('created_at', 'desc'));
+      const snap = await getDocs(q);
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+      setAllTeams(data);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const fetchNotes = async () => {
     setLoading(true);
-    const { data: notesData } = await supabase.from('match_notes').select('*').eq('match_id', match.id);
-    
-    if (notesData) {
+    try {
+      const q = query(collection(db, 'match_notes'), where('match_id', '==', match.id));
+      const snap = await getDocs(q);
+      const notesData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      
       const tNotes: any = {};
-      notesData.forEach(n => {
+      notesData.forEach((n: any) => {
         if (n.tab === 'improvements') {
           setImprovementsNote(n.actual_note || '');
         } else if (n.tab === 'select' || n.tab === 'battle') {
@@ -82,6 +104,8 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
         }
       });
       setTurnNotes(tNotes);
+    } catch (e) {
+      console.error(e);
     }
     setLoading(false);
   };
@@ -135,15 +159,22 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
   };
 
   const upsertNote = async (tab: string, turn?: number, actual?: string, correct?: string) => {
-    let query = supabase.from('match_notes').select('id').eq('match_id', match.id).eq('tab', tab);
-    if (turn !== undefined) query = query.eq('turn_number', turn);
+    try {
+      let q = query(collection(db, 'match_notes'), where('match_id', '==', match.id), where('tab', '==', tab));
+      if (turn !== undefined) {
+        q = query(q, where('turn_number', '==', turn));
+      }
 
-    const { data: existing } = await query.maybeSingle();
+      const snap = await getDocs(q);
+      const existing = snap.docs.length > 0 ? snap.docs[0] : null;
 
-    if (existing) {
-      await supabase.from('match_notes').update({ actual_note: actual, correct_note: correct }).eq('id', existing.id);
-    } else {
-      await supabase.from('match_notes').insert([{ match_id: match.id, tab, turn_number: turn, actual_note: actual, correct_note: correct }]);
+      if (existing) {
+        await updateDoc(doc(db, 'match_notes', existing.id), { actual_note: actual, correct_note: correct });
+      } else {
+        await addDoc(collection(db, 'match_notes'), { match_id: match.id, tab, turn_number: turn || null, actual_note: actual, correct_note: correct });
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -157,13 +188,19 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
       {/* Left side: Video Player */}
       <div className="match-detail-video" style={{ flex: '1 1 40%', marginTop: '4.2rem' }}>
         <div style={{ backgroundColor: '#000', overflow: 'hidden', border: '2px solid var(--text-primary)', display: 'flex', justifyContent: 'center' }}>
-          <ReactPlayer 
-            src={match.video_url} 
-            controls 
-            width="100%" 
-            height="auto"
-            style={{ aspectRatio: '16/9', maxHeight: '400px' }}
-          />
+          {videoSrc ? (
+            <ReactPlayer 
+              src={videoSrc} 
+              controls 
+              width="100%" 
+              height="auto"
+              style={{ aspectRatio: '16/9', maxHeight: '400px' }}
+            />
+          ) : (
+            <div style={{ width: '100%', aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+              Loading video...
+            </div>
+          )}
         </div>
       </div>
 
@@ -317,9 +354,13 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
                     value={match.result}
                     onChange={async (e) => {
                       const newResult = e.target.value;
-                      const { error } = await supabase.from('matches').update({ result: newResult }).eq('id', match.id);
-                      if (!error && onMatchUpdate) {
-                        onMatchUpdate({ ...match, result: newResult as 'win' | 'loss' | 'tie' });
+                      try {
+                        await updateDoc(doc(db, 'matches', match.id), { result: newResult });
+                        if (onMatchUpdate) {
+                          onMatchUpdate({ ...match, result: newResult as 'win' | 'loss' | 'tie' });
+                        }
+                      } catch (err) {
+                        console.error(err);
                       }
                     }}
                     className="input-field"
@@ -337,10 +378,14 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
                     value={match.own_team_id || ''}
                     onChange={async (e) => {
                       const newTeamId = e.target.value;
-                      const { error } = await supabase.from('matches').update({ own_team_id: newTeamId || null }).eq('id', match.id);
-                      if (!error && onMatchUpdate) {
-                        const newTeam = allTeams.find(t => t.id === newTeamId) || null;
-                        onMatchUpdate({ ...match, own_team_id: newTeamId || null, teams: newTeam as any });
+                      try {
+                        await updateDoc(doc(db, 'matches', match.id), { own_team_id: newTeamId || null });
+                        if (onMatchUpdate) {
+                          const newTeam = allTeams.find(t => t.id === newTeamId) || null;
+                          onMatchUpdate({ ...match, own_team_id: newTeamId || null, teams: newTeam as any });
+                        }
+                      } catch (err) {
+                        console.error(err);
                       }
                     }}
                     className="input-field"

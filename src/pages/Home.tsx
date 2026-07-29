@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import type { Match, Team } from '../lib/types';
 import { AppContext } from '../AppContext';
 import { Modal } from '../components/ui/Modal';
@@ -25,21 +26,33 @@ export default function Home() {
   }, []);
 
   const fetchMatches = async () => {
-    // Fetch matches joined with team data
-    const { data, error } = await supabase
-      .from('matches')
-      .select('*, teams(*)')
-      .order('played_at', { ascending: false });
+    try {
+      // 1. Fetch all matches
+      const q = query(collection(db, 'matches'), orderBy('played_at', 'desc'));
+      const matchesSnap = await getDocs(q);
+      const rawMatches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Match));
+      
+      // 2. Fetch teams mapping
+      const teamsSnap = await getDocs(collection(db, 'teams'));
+      const teamsMap: Record<string, Team> = {};
+      teamsSnap.docs.forEach(d => {
+        teamsMap[d.id] = { id: d.id, ...d.data() } as Team;
+      });
 
-    if (error) {
-      console.error('Error fetching matches:', error);
-    } else {
-      let fetchedMatches = data as any || [];
+      // 3. Combine
+      const fetchedMatches = rawMatches.map(m => ({
+        ...m,
+        teams: m.own_team_id ? teamsMap[m.own_team_id] : (null as unknown as Team)
+      }));
+
       // Explicit JS sorting to guarantee the most recent matches appear at the top
       fetchedMatches.sort((a: any, b: any) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
       setMatches(fetchedMatches);
+    } catch (error) {
+      console.error('Error fetching matches:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -51,48 +64,45 @@ export default function Home() {
           </button>
           Match History
         </h1>
-        <button 
-          onClick={() => setIsShortcutModalOpen(true)}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            opacity: 0.6,
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0.25rem'
-          }}
-          title="Setup iOS Shortcut"
-        >
-          ⓘ Automated Upload Setup
-        </button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <button 
+            onClick={() => setIsUploadModalOpen(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '1rem',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              opacity: 0.6,
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0.25rem'
+            }}
+            title="Manual Upload"
+          >
+            + Manual Upload
+          </button>
+          <button 
+            onClick={() => setIsShortcutModalOpen(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '1rem',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              opacity: 0.6,
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0.25rem'
+            }}
+            title="Setup iOS Shortcut"
+          >
+            ⓘ Automated Upload Setup
+          </button>
+        </div>
       </div>
       
       <div className="flex flex-col" style={{ gap: '0.5rem' }}>
-        {/* Upload Match Placeholder Card */}
-        <div 
-          onClick={() => setIsUploadModalOpen(true)}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            padding: '2rem',
-            border: '2px dashed var(--text-primary)',
-            transition: 'background-color 0.2s',
-            cursor: 'pointer',
-            minHeight: '120px'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-        >
-          <span style={{ fontSize: '3rem', fontWeight: 700, color: 'var(--text-primary)' }}>+</span>
-        </div>
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>

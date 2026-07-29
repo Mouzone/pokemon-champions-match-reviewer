@@ -14,22 +14,12 @@ export function ShortcutGuide() {
           <li><strong>Add Action: Select Photos</strong> (Configure to include only "Videos").</li>
           <li><strong>Add Action: Encode Media</strong> (Resize to 720p, HEVC).</li>
           <li>
-            <strong>Add Action: Get Contents of URL</strong> with your endpoint:
+            <strong>Add Action: Firebase Upload</strong> or use the <strong>Firebase REST API</strong> to upload the encoded video directly to your Firebase Storage bucket (e.g. <code>matchreviewer-automation.firebasestorage.app</code>).
             <br />
-            <code style={{ background: 'var(--bg-surface)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.9em', display: 'inline-block', marginTop: '0.5rem' }}>
-              https://YOUR_PROJECT_REF.supabase.co/functions/v1/process-match
-            </code>
+            <span style={{ fontSize: '0.9em', opacity: 0.8 }}>Note: You can use the "Upload File" action if using a third-party app that integrates with Firebase, or send a PUT request to the Firebase Storage REST API with the encoded video.</span>
           </li>
           <li>
-            <strong>Configure the URL Action:</strong>
-            <ul style={{ marginLeft: '1.5rem', marginTop: '0.5rem' }}>
-              <li>Method: <strong>POST</strong></li>
-              <li>Header: <code>Authorization</code> = <code>Bearer YOUR_SUPABASE_ANON_KEY</code></li>
-              <li>Request Body: <strong>Form</strong> (pass the <strong>Encoded Media</strong>).</li>
-            </ul>
-          </li>
-          <li>
-            <strong>Add Action: Show Result</strong> (Optional) - Pass it the "Contents of URL" to verify the upload response.
+            <strong>That's it!</strong> The Cloud Function will automatically trigger when the upload completes and start analyzing the match with Vertex AI.
           </li>
         </ol>
       </div>

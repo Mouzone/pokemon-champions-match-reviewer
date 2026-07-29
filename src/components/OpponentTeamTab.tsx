@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import { PokemonSearch } from './PokemonSearch';
 import { getShowdownSpriteName, formatPokeApiName } from '../lib/pokepaste';
 
@@ -58,7 +59,7 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
     // Actually, save with nulls so the anchor persists on reload.
     // However, onUpdate might expect non-null in MatchDetail, but Home handles nulls now.
     if (onUpdate) onUpdate(newTeam as any);
-    await supabase.from('matches').update({ opponent_team: newTeam }).eq('id', matchId);
+    await updateDoc(doc(db, 'matches', matchId), { opponent_team: newTeam });
   };
 
   const handleRemove = async (index: number) => {
@@ -67,7 +68,7 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
     setTeam(newTeam);
     if (onUpdate) onUpdate(newTeam as any);
     
-    await supabase.from('matches').update({ opponent_team: newTeam }).eq('id', matchId);
+    await updateDoc(doc(db, 'matches', matchId), { opponent_team: newTeam });
   };
 
   // Create an array of 6 slots
