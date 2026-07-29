@@ -4,10 +4,9 @@ exports.processMatch = void 0;
 const storage_1 = require("firebase-functions/v2/storage");
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
-const vertexai_1 = require("@google-cloud/vertexai");
+const genai_1 = require("@google/genai");
 (0, app_1.initializeApp)();
 exports.processMatch = (0, storage_1.onObjectFinalized)({ region: "us-east1", timeoutSeconds: 540, memory: "512MiB" }, async (event) => {
-    var _a, _b;
     const fileBucket = event.data.bucket; // Storage bucket containing the file.
     const filePath = event.data.name; // File path in the bucket.
     const contentType = event.data.contentType; // File content type.
@@ -17,7 +16,7 @@ exports.processMatch = (0, storage_1.onObjectFinalized)({ region: "us-east1", ti
     }
     console.log(`Processing video: ${filePath} in bucket ${fileBucket}`);
     const PROJECT_ID = process.env.GCLOUD_PROJECT || "matchreviewer-automation";
-    const LOCATION = "us-central1"; // Vertex AI location
+    const LOCATION = "us-east1"; // Vertex AI location
     try {
         // Fetch teams
         const db = (0, firestore_1.getFirestore)();
@@ -31,12 +30,10 @@ exports.processMatch = (0, storage_1.onObjectFinalized)({ region: "us-east1", ti
         let detectedTeamId = null;
         let detectedResult = 'win';
         console.log("Starting Vertex AI Analysis...");
-        const vertex_ai = new vertexai_1.VertexAI({ project: PROJECT_ID, location: LOCATION });
-        const model = vertex_ai.preview.getGenerativeModel({
-            model: 'gemini-1.5-flash-001',
-            generationConfig: {
-                responseMimeType: "application/json"
-            }
+        const ai = new genai_1.GoogleGenAI({
+            vertexai: true,
+            project: PROJECT_ID,
+            location: LOCATION
         });
         const prompt = `This is a Pokemon VGC screen recording.
 IMPORTANT: When identifying Pokemon, ensure they are legal and available in the latest regulation of Pokemon Champions. Do not hallucinate older or unavailable Pokemon.
@@ -57,6 +54,7 @@ Output MUST be valid JSON matching this exact schema:
   "result": "string (must be exactly 'win', 'loss', or 'tie')"
 }`;
         const request = {
+            model: 'gemini-1.5-flash',
             contents: [{
                     role: 'user',
                     parts: [
@@ -68,13 +66,15 @@ Output MUST be valid JSON matching this exact schema:
                         },
                         { text: prompt }
                     ]
-                }]
+                }],
+            config: {
+                responseMimeType: "application/json"
+            }
         };
-        const analyzeRes = await model.generateContent(request);
-        const aiResponse = analyzeRes.response;
-        console.log("Raw Vertex AI Response:", JSON.stringify(aiResponse));
-        if (aiResponse.candidates && aiResponse.candidates.length > 0) {
-            const rawText = (_b = (_a = aiResponse.candidates[0].content) === null || _a === void 0 ? void 0 : _a.parts[0]) === null || _b === void 0 ? void 0 : _b.text;
+        const analyzeRes = await ai.models.generateContent(request);
+        console.log("Raw Vertex AI Response:", JSON.stringify(analyzeRes));
+        if (analyzeRes.candidates && analyzeRes.candidates.length > 0) {
+            const rawText = analyzeRes.text;
             if (rawText) {
                 try {
                     const parsed = JSON.parse(rawText.trim());

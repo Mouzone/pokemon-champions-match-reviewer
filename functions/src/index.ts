@@ -2,7 +2,7 @@ import { onObjectFinalized } from "firebase-functions/v2/storage";
 import { initializeApp } from "firebase-admin/app";
 
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { VertexAI } from "@google-cloud/vertexai";
+import { GoogleGenAI } from "@google/genai";
 
 initializeApp();
 
@@ -19,7 +19,7 @@ export const processMatch = onObjectFinalized({ region: "us-east1", timeoutSecon
   console.log(`Processing video: ${filePath} in bucket ${fileBucket}`);
 
   const PROJECT_ID = process.env.GCLOUD_PROJECT || "matchreviewer-automation";
-  const LOCATION = "us-central1"; // Vertex AI location
+  const LOCATION = "us-east1"; // Vertex AI location
 
   try {
     // Fetch teams
@@ -37,12 +37,10 @@ export const processMatch = onObjectFinalized({ region: "us-east1", timeoutSecon
     let detectedResult = 'win';
     
     console.log("Starting Vertex AI Analysis...");
-    const vertex_ai = new VertexAI({ project: PROJECT_ID, location: LOCATION });
-    const model = vertex_ai.preview.getGenerativeModel({
-      model: 'gemini-1.5-flash-001',
-      generationConfig: {
-        responseMimeType: "application/json"
-      }
+    const ai = new GoogleGenAI({ 
+      vertexai: true,
+      project: PROJECT_ID, 
+      location: LOCATION 
     });
 
     const prompt = `This is a Pokemon VGC screen recording.
@@ -65,6 +63,7 @@ Output MUST be valid JSON matching this exact schema:
 }`;
 
     const request = {
+      model: 'gemini-1.5-flash',
       contents: [{
         role: 'user',
         parts: [
@@ -76,15 +75,17 @@ Output MUST be valid JSON matching this exact schema:
           },
           { text: prompt }
         ]
-      }]
+      }],
+      config: {
+        responseMimeType: "application/json"
+      }
     };
 
-    const analyzeRes = await model.generateContent(request);
-    const aiResponse = analyzeRes.response;
-    console.log("Raw Vertex AI Response:", JSON.stringify(aiResponse));
+    const analyzeRes = await ai.models.generateContent(request);
+    console.log("Raw Vertex AI Response:", JSON.stringify(analyzeRes));
     
-    if (aiResponse.candidates && aiResponse.candidates.length > 0) {
-      const rawText = aiResponse.candidates[0].content?.parts[0]?.text;
+    if (analyzeRes.candidates && analyzeRes.candidates.length > 0) {
+      const rawText = analyzeRes.text;
       if (rawText) {
         try {
           const parsed = JSON.parse(rawText.trim());
