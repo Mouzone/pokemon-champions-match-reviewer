@@ -4,7 +4,7 @@ import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
-  apiKey: "import.meta.env.VITE_FIREBASE_API_KEY",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "matchreviewer-automation.firebaseapp.com",
   projectId: "matchreviewer-automation",
   storageBucket: "matchreviewer-automation.firebasestorage.app",
