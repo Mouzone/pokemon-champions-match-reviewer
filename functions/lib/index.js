@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.manualProcessMatch = exports.processMatch = void 0;
+exports.cleanupOldVideos = exports.manualProcessMatch = exports.processMatch = void 0;
 const app_1 = require("firebase-admin/app");
 const storage_1 = require("firebase-functions/v2/storage");
 const https_1 = require("firebase-functions/v2/https");
+const scheduler_1 = require("firebase-functions/v2/scheduler");
 const firestore_1 = require("firebase-admin/firestore");
+const storage_2 = require("firebase-admin/storage");
 const genai_1 = require("@google/genai");
 (0, app_1.initializeApp)();
 async function runVideoReview(fileBucket, filePath, contentType, jobId) {
@@ -170,5 +172,28 @@ exports.manualProcessMatch = (0, https_1.onCall)({ region: "us-east1", timeoutSe
     const jobId = filePath.replace(/[^a-zA-Z0-9]/g, '_') + '_manual_' + Date.now();
     await runVideoReview(fileBucket, filePath, contentType, jobId);
     return { success: true, jobId };
+});
+exports.cleanupOldVideos = (0, scheduler_1.onSchedule)({ schedule: "every day 00:00", region: "us-east1", timeoutSeconds: 540 }, async (event) => {
+    const bucket = (0, storage_2.getStorage)().bucket("matchreviewer-automation.firebasestorage.app");
+    const [files] = await bucket.getFiles({ prefix: 'videos/' });
+    const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+    let deletedCount = 0;
+    for (const file of files) {
+        try {
+            const [metadata] = await file.getMetadata();
+            if (metadata && metadata.timeCreated) {
+                const timeCreated = new Date(metadata.timeCreated).getTime();
+                if (timeCreated < threeDaysAgo) {
+                    await file.delete();
+                    console.log(`Deleted old video: ${file.name}`);
+                    deletedCount++;
+                }
+            }
+        }
+        catch (err) {
+            console.error(`Failed to check or delete file ${file.name}:`, err);
+        }
+    }
+    console.log(`Cleanup complete. Deleted ${deletedCount} videos.`);
 });
 //# sourceMappingURL=index.js.map

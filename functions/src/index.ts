@@ -1,7 +1,9 @@
 import { initializeApp } from "firebase-admin/app";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { GoogleGenAI } from "@google/genai";
 
 initializeApp();
@@ -185,4 +187,30 @@ export const manualProcessMatch = onCall({ region: "us-east1", timeoutSeconds: 5
   const jobId = filePath.replace(/[^a-zA-Z0-9]/g, '_') + '_manual_' + Date.now();
   await runVideoReview(fileBucket, filePath, contentType, jobId);
   return { success: true, jobId };
+});
+
+export const cleanupOldVideos = onSchedule({ schedule: "every day 00:00", region: "us-east1", timeoutSeconds: 540 }, async (event) => {
+  const bucket = getStorage().bucket("matchreviewer-automation.firebasestorage.app");
+  const [files] = await bucket.getFiles({ prefix: 'videos/' });
+  
+  const fiveDaysAgo = Date.now() - 5 * 24 * 60 * 60 * 1000;
+  let deletedCount = 0;
+  
+  for (const file of files) {
+    try {
+      const [metadata] = await file.getMetadata();
+      if (metadata && metadata.timeCreated) {
+        const timeCreated = new Date(metadata.timeCreated).getTime();
+        if (timeCreated < fiveDaysAgo) {
+          await file.delete();
+          console.log(`Deleted old video: ${file.name}`);
+          deletedCount++;
+        }
+      }
+    } catch (err) {
+      console.error(`Failed to check or delete file ${file.name}:`, err);
+    }
+  }
+  
+  console.log(`Cleanup complete. Deleted ${deletedCount} videos.`);
 });
