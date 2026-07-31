@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, useLocation, Navigate } from 'react-router-dom';
 import { AppContext } from './AppContext';
 import { GlobalProgress } from './components/GlobalProgress';
 import Home from './pages/Home';
@@ -7,8 +7,6 @@ import TeamsManager from './pages/TeamsManager';
 import { Login } from './components/Login';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from './lib/firebase';
-
-
 
 // Using index.css imported in main.tsx
 
@@ -53,30 +51,35 @@ function App() {
 
   if (loadingAuth) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: 'var(--bg-primary, #1e1e24)', color: 'var(--text-primary, #ffffff)' }}>
-        <h2>Loading...</h2>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+        <h2>...</h2>
       </div>
     );
-  }
-
-  if (!user) {
-    return <Login onSuccess={() => {}} />;
   }
 
   return (
     <AppContext.Provider value={{ isDrawerOpen, setIsDrawerOpen }}>
       <Router>
-        <div className="app-container">
-          <NavigationDrawer />
+        {!user ? (
+          <Routes>
+            <Route path="/login" element={<Login onSuccess={() => {}} />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        ) : (
+          <div className="app-container">
+            <NavigationDrawer />
 
-          <main className="content">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/teams" element={<TeamsManager />} />
-            </Routes>
-          </main>
-          <GlobalProgress />
-        </div>
+            <main className="content">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/teams" element={<TeamsManager />} />
+                <Route path="/login" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </main>
+            <GlobalProgress />
+          </div>
+        )}
       </Router>
     </AppContext.Provider>
   );
