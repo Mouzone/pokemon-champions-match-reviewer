@@ -1,6 +1,13 @@
 import { createContext } from 'react';
 
 export const AppContext = createContext<{
-  isDrawerOpen: boolean;
-  setIsDrawerOpen: (val: boolean) => void;
-}>({ isDrawerOpen: false, setIsDrawerOpen: () => {} });
+  isUploadModalOpen: boolean;
+  setIsUploadModalOpen: (val: boolean) => void;
+  isCreateTeamModalOpen: boolean;
+  setIsCreateTeamModalOpen: (val: boolean) => void;
+}>({
+  isUploadModalOpen: false,
+  setIsUploadModalOpen: () => {},
+  isCreateTeamModalOpen: false,
+  setIsCreateTeamModalOpen: () => {}
+});

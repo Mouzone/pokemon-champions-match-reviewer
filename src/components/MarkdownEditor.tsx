@@ -14,12 +14,13 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', minWidth: 0 }}>
       <div style={{ 
         flex: 1, 
-        border: '2px solid var(--text-primary)', 
-        backgroundColor: 'var(--bg-surface-hover)',
+        border: '1px solid var(--border-color)', 
+        borderRadius: 'var(--radius-md)',
+        backgroundColor: 'var(--bg-surface)',
         overflow: 'hidden',
-        minHeight: '150px',
         display: 'flex',
-        position: 'relative'
+        position: 'relative',
+        boxShadow: 'var(--shadow-sm)'
       }}>
         <button 
           onClick={() => setIsPreview(!isPreview)}

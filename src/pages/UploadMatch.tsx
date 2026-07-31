@@ -158,14 +158,16 @@ export default function UploadMatch({ onSuccess }: UploadMatchProps) {
         
         <div className="tabs" style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
           <button 
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: activeTab === 'youtube' ? 'bold' : 'normal', color: activeTab === 'youtube' ? 'var(--primary-color)' : 'var(--text-secondary)' }}
+            className={`tab-btn ${activeTab === 'youtube' ? 'active' : ''}`}
             onClick={() => setActiveTab('youtube')}
+            style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
           >
             YouTube Link
           </button>
           <button 
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: activeTab === 'storage' ? 'bold' : 'normal', color: activeTab === 'storage' ? 'var(--primary-color)' : 'var(--text-secondary)' }}
+            className={`tab-btn ${activeTab === 'storage' ? 'active' : ''}`}
             onClick={() => setActiveTab('storage')}
+            style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
           >
             Storage Browser
           </button>

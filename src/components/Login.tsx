@@ -37,7 +37,11 @@ export function Login({ onSuccess }: LoginProps) {
   return (
     <div className="login-container">
       <form onSubmit={handleSubmit} className="login-form">
-        <div className="login-header">sign in</div>
+        <div className="login-header">
+          <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>⚔️</div>
+          <div>Match Reviewer</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500, marginTop: '0.25rem', fontFamily: 'var(--font-sans)' }}>Pokémon Champions</div>
+        </div>
         {error && <div className="login-error">{error}</div>}
         
         <div className="form-group">
@@ -47,7 +51,7 @@ export function Login({ onSuccess }: LoginProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="email"
+            placeholder="Email"
             autoComplete="email"
           />
         </div>
@@ -59,7 +63,7 @@ export function Login({ onSuccess }: LoginProps) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            placeholder="password"
+            placeholder="Password"
             autoComplete="current-password"
           />
         </div>
@@ -72,11 +76,11 @@ export function Login({ onSuccess }: LoginProps) {
               onChange={(e) => setRememberMe(e.target.checked)}
             />
             <span className="checkmark"></span>
-            remember
+            Remember me
           </label>
           
           <button type="submit" disabled={loading} className="login-button">
-            {loading ? '...' : '→'}
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </div>
       </form>

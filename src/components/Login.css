@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-base);
   color: var(--text-primary);
   padding: 20px;
 }
@@ -14,16 +14,21 @@
   gap: 2rem;
   width: 100%;
   max-width: 320px;
+  background: var(--bg-surface);
+  padding: 2.5rem 2rem;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-color);
 }
 
 .login-header {
-  font-size: 1.25rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: lowercase;
-  color: var(--text-secondary);
-  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
   text-align: center;
+  font-family: var(--font-heading);
 }
 
 .form-group {
@@ -32,21 +37,21 @@
 }
 
 .form-group input {
-  padding: 0.5rem 0;
+  padding: 0.75rem 0.5rem;
   border: none;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 2px solid var(--border-color);
   background-color: transparent;
   color: var(--text-primary);
-  font-size: 1.1rem;
+  font-size: 1rem;
   outline: none;
   border-radius: 0;
   transition: border-color 0.3s ease;
+  font-family: var(--font-sans);
 }
 
 .form-group input::placeholder {
   color: var(--text-muted);
-  font-weight: 300;
-  text-transform: lowercase;
+  font-weight: 400;
 }
 
 .form-group input:focus {
@@ -67,8 +72,9 @@
   cursor: pointer;
   color: var(--text-muted);
   font-size: 0.85rem;
-  text-transform: lowercase;
   user-select: none;
+  font-family: var(--font-sans);
+  font-weight: 500;
 }
 
 .minimal-checkbox input {
@@ -80,18 +86,18 @@
 }
 
 .checkmark {
-  height: 12px;
-  width: 12px;
+  height: 16px;
+  width: 16px;
   background-color: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: 2px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
   display: inline-block;
   position: relative;
   transition: all 0.2s ease;
 }
 
 .minimal-checkbox:hover input ~ .checkmark {
-  border-color: var(--text-secondary);
+  border-color: var(--primary);
 }
 
 .minimal-checkbox input:checked ~ .checkmark {
@@ -107,43 +113,51 @@
 
 .minimal-checkbox input:checked ~ .checkmark:after {
   display: block;
-  left: 3px;
+  left: 4px;
   top: 1px;
-  width: 2px;
-  height: 5px;
-  border: solid var(--bg-surface);
-  border-width: 0 1.5px 1.5px 0;
+  width: 3px;
+  height: 7px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
 
 .login-button {
-  background: none;
+  background: var(--primary);
   border: none;
-  color: var(--text-primary);
-  font-size: 1.5rem;
+  color: white;
+  font-size: 1rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: var(--shadow-md);
 }
 
 .login-button:hover:not(:disabled) {
-  transform: translateX(4px);
-  opacity: 0.7;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background: var(--primary-hover);
 }
 
 .login-button:disabled {
-  opacity: 0.3;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .login-error {
-  background: transparent;
-  color: var(--loss-text);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--loss-color);
   font-size: 0.85rem;
   text-align: center;
-  border: none;
-  padding: 0;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  font-weight: 500;
 }

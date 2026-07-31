@@ -6,7 +6,7 @@ import type { Match, Team } from '../lib/types';
 
 import { Button } from '../components/ui/Button';
 import { MarkdownEditor } from '../components/MarkdownEditor';
-import { ReferenceTab } from '../components/ReferenceTab';
+
 import { OpponentTeamTab } from '../components/OpponentTeamTab';
 
 interface MatchDetailProps {
@@ -18,7 +18,7 @@ type TurnData = { events: string; notes: string; knowns: string; assumptions: st
 
 export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) {
   const [activeTab, setActiveTab] = useState<'reference' | 'notes' | 'improvements'>('reference');
-  const [referenceSubTab, setReferenceSubTab] = useState<'myTeam' | 'opponent'>('myTeam');
+
   const [loading, setLoading] = useState(true);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
 
@@ -186,18 +186,17 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
     <div className="match-detail-container">
       
       {/* Left side: Video Player */}
-      <div className="match-detail-video" style={{ flex: '1 1 40%', marginTop: '4.2rem' }}>
-        <div style={{ backgroundColor: '#000', overflow: 'hidden', border: '2px solid var(--text-primary)', display: 'flex', justifyContent: 'center' }}>
+      <div className="match-detail-video" style={{ flex: 1.5, minWidth: 0, display: 'flex', alignItems: 'flex-start' }}>
+        <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: 'var(--bg-base)', overflow: 'hidden', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'center' }}>
           {videoSrc ? (
             <ReactPlayer 
               src={videoSrc} 
               controls 
               width="100%" 
-              height="auto"
-              style={{ aspectRatio: '16/9', maxHeight: '400px' }}
+              height="100%"
             />
           ) : (
-            <div style={{ width: '100%', aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
               Loading video...
             </div>
           )}
@@ -205,23 +204,24 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
       </div>
 
       {/* Right side: Annotation Tabs */}
-      <div style={{ flex: '2 1 50%', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <div className="tabs-header" style={{ marginBottom: '1.5rem', borderBottom: '2px solid var(--text-primary)', display: 'flex' }}>
-          <button className={`tab-btn ${activeTab === 'reference' ? 'active' : ''}`} onClick={() => setActiveTab('reference')}>Reference</button>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, paddingRight: '0.5rem' }}>
+        <div className="tabs-header" style={{ marginBottom: '0.5rem', borderBottom: '2px solid var(--border-color)', display: 'flex' }}>
+          <button className={`tab-btn ${activeTab === 'reference' ? 'active' : ''}`} onClick={() => setActiveTab('reference')}>Details</button>
           <button className={`tab-btn ${activeTab === 'notes' ? 'active' : ''}`} onClick={() => setActiveTab('notes')}>Notes</button>
           <button className={`tab-btn ${activeTab === 'improvements' ? 'active' : ''}`} onClick={() => setActiveTab('improvements')}>Improvements</button>
         </div>
 
         {activeTab === 'notes' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minHeight: 0 }}>
             
+            {/* Turn selector - compact inline */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h3 style={{ margin: 0, textTransform: 'uppercase', fontWeight: 900 }}>Turn:</h3>
+              <span style={{ margin: 0, fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Turn</span>
               <select 
                 value={currentTurn} 
                 onChange={e => handleTurnChange(Number(e.target.value))}
-                className="input-field"
-                style={{ width: 'fit-content', padding: '0.25rem 0.15rem 0.25rem 0.4rem', textAlign: 'center' }}
+                className="select-field"
+                style={{ width: '60px', padding: '0.25rem 0.4rem', fontSize: '0.8rem' }}
               >
                 <option value={0}>0</option>
                 {[...Array(20)].map((_, i) => (
@@ -230,28 +230,37 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
               </select>
             </div>
 
-            <div className="notes-editor-container">
+            <div className="notes-editor-container" style={{ display: 'flex', gap: '0.75rem', flex: 1, minHeight: 0 }}>
               
               {/* Left Box */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <select 
-                  value={leftBox}
-                  onChange={e => setLeftBox(e.target.value as keyof TurnData)}
-                  style={{ 
-                    fontWeight: 800, 
-                    textTransform: 'uppercase', 
-                    marginBottom: '0.5rem', 
-                    border: 'none', 
-                    background: 'transparent',
-                    fontSize: '1rem',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    padding: 0
-                  }}
-                >
-                  {boxOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-                <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, gap: '4px' }}>
+                {/* Underline tab selectors */}
+                <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)' }}>
+                  {boxOptions.map(o => (
+                    <button
+                      key={o.value}
+                      onClick={() => setLeftBox(o.value as keyof TurnData)}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        border: 'none',
+                        borderBottom: `2px solid ${leftBox === o.value ? 'var(--primary)' : 'transparent'}`,
+                        marginBottom: '-1px',
+                        background: 'transparent',
+                        color: leftBox === o.value ? 'var(--primary)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <MarkdownEditor 
                     value={currentTurnData[leftBox] || ''} 
                     onChange={val => setTurnNotes(prev => ({ ...prev, [currentTurn]: { ...prev[currentTurn], [leftBox]: val } }))} 
@@ -261,25 +270,33 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
               </div>
 
               {/* Right Box */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <select 
-                  value={rightBox}
-                  onChange={e => setRightBox(e.target.value as keyof TurnData)}
-                  style={{ 
-                    fontWeight: 800, 
-                    textTransform: 'uppercase', 
-                    marginBottom: '0.5rem', 
-                    border: 'none', 
-                    background: 'transparent',
-                    fontSize: '1rem',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    padding: 0
-                  }}
-                >
-                  {boxOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-                <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, gap: '4px' }}>
+                <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)' }}>
+                  {boxOptions.map(o => (
+                    <button
+                      key={o.value}
+                      onClick={() => setRightBox(o.value as keyof TurnData)}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        border: 'none',
+                        borderBottom: `2px solid ${rightBox === o.value ? 'var(--primary)' : 'transparent'}`,
+                        marginBottom: '-1px',
+                        background: 'transparent',
+                        color: rightBox === o.value ? 'var(--primary)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <MarkdownEditor 
                     value={currentTurnData[rightBox] || ''} 
                     onChange={val => setTurnNotes(prev => ({ ...prev, [currentTurn]: { ...prev[currentTurn], [rightBox]: val } }))} 
@@ -290,132 +307,85 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
 
             </div>
 
-            <div style={{ marginTop: 'auto' }}>
-              <Button onClick={saveTurnNote} disabled={saving} className="btn-primary" style={{ width: '100%', padding: '1rem' }}>{saving ? 'Saving...' : 'SAVE TURN NOTES'}</Button>
+            <div>
+              <Button onClick={saveTurnNote} disabled={saving} className="btn-primary" style={{ width: '100%', padding: '0.75rem' }}>{saving ? 'Saving...' : 'SAVE TURN NOTES'}</Button>
             </div>
           </div>
         )}
 
         {activeTab === 'improvements' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
-            <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minHeight: 0 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <MarkdownEditor 
                 value={improvementsNote} 
                 onChange={setImprovementsNote} 
                 placeholder="Summarize key takeaways..."
               />
             </div>
-            <div style={{ marginTop: 'auto' }}>
-              <Button onClick={saveImprovementsNote} disabled={saving} className="btn-primary" style={{ width: '100%', padding: '1rem' }}>{saving ? 'Saving...' : 'SAVE NOTES'}</Button>
+            <div>
+              <Button onClick={saveImprovementsNote} disabled={saving} className="btn-primary" style={{ width: '100%', padding: '0.75rem' }}>{saving ? 'Saving...' : 'SAVE NOTES'}</Button>
             </div>
           </div>
         )}
 
         {activeTab === 'reference' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, minHeight: '400px' }}>
-            <div style={{ display: 'flex', gap: '1rem', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.5rem' }}>
-              <button 
-                onClick={() => setReferenceSubTab('myTeam')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: '1.1rem',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  color: referenceSubTab === 'myTeam' ? 'var(--text-primary)' : 'var(--text-muted)',
-                  borderBottom: referenceSubTab === 'myTeam' ? '3px solid var(--text-primary)' : '3px solid transparent'
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1, minHeight: 0 }}>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <select 
+                value={match.result || ''}
+                onChange={async (e) => {
+                  const newResult = e.target.value;
+                  try {
+                    await updateDoc(doc(db, 'matches', match.id), { result: newResult || null });
+                    if (onMatchUpdate) onMatchUpdate({ ...match, result: newResult as any });
+                  } catch (err) {
+                    console.error(err);
+                  }
                 }}
+                className="select-field"
+                style={{ flex: 0.6, padding: '0.6rem 0.75rem', fontSize: '0.85rem', fontWeight: 600 }}
               >
-                My Team
-              </button>
-              <button 
-                onClick={() => setReferenceSubTab('opponent')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: '1.1rem',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  color: referenceSubTab === 'opponent' ? 'var(--text-primary)' : 'var(--text-muted)',
-                  borderBottom: referenceSubTab === 'opponent' ? '3px solid var(--text-primary)' : '3px solid transparent'
+                <option value="">Result</option>
+                <option value="win">Win</option>
+                <option value="loss">Loss</option>
+                <option value="tie">Tie</option>
+              </select>
+
+              <select 
+                value={match.own_team_id || ''}
+                onChange={async (e) => {
+                  const newTeamId = e.target.value;
+                  try {
+                    await updateDoc(doc(db, 'matches', match.id), { own_team_id: newTeamId || null });
+                    if (onMatchUpdate) {
+                      const newTeam = allTeams.find(t => t.id === newTeamId) || null;
+                      onMatchUpdate({ ...match, own_team_id: newTeamId || null, teams: newTeam as any });
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  }
                 }}
+                className="select-field"
+                style={{ flex: 2, padding: '0.6rem 0.75rem', fontSize: '0.85rem', fontWeight: 600 }}
               >
-                Opponent
-              </button>
+                <option value="">Select Team</option>
+                {allTeams.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
             </div>
-            
-            {referenceSubTab === 'myTeam' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ fontWeight: 800, textTransform: 'uppercase' }}>Match Result:</span>
-                  <select 
-                    value={match.result}
-                    onChange={async (e) => {
-                      const newResult = e.target.value;
-                      try {
-                        await updateDoc(doc(db, 'matches', match.id), { result: newResult });
-                        if (onMatchUpdate) {
-                          onMatchUpdate({ ...match, result: newResult as 'win' | 'loss' | 'tie' });
-                        }
-                      } catch (err) {
-                        console.error(err);
-                      }
-                    }}
-                    className="input-field"
-                    style={{ flex: 1 }}
-                  >
-                    <option value="win">Win</option>
-                    <option value="loss">Loss</option>
-                    <option value="tie">Tie</option>
-                  </select>
-                </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ fontWeight: 800, textTransform: 'uppercase' }}>Select Team:</span>
-                  <select 
-                    value={match.own_team_id || ''}
-                    onChange={async (e) => {
-                      const newTeamId = e.target.value;
-                      try {
-                        await updateDoc(doc(db, 'matches', match.id), { own_team_id: newTeamId || null });
-                        if (onMatchUpdate) {
-                          const newTeam = allTeams.find(t => t.id === newTeamId) || null;
-                          onMatchUpdate({ ...match, own_team_id: newTeamId || null, teams: newTeam as any });
-                        }
-                      } catch (err) {
-                        console.error(err);
-                      }
-                    }}
-                    className="input-field"
-                    style={{ flex: 1 }}
-                  >
-                    <option value="">-- No Team Selected --</option>
-                    {allTeams.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-                {match.teams ? (
-                  <ReferenceTab pasteText={match.teams.paste_text || ''} />
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '2rem', border: '2px dashed var(--border-color)', borderRadius: '8px' }}>
-                    <p className="text-muted">No team selected for this match.</p>
-                  </div>
-                )}
-              </div>
-            ) : (
+
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <OpponentTeamTab 
                 matchId={match.id} 
                 initialTeam={match.opponent_team || []}
                 onUpdate={(newTeam) => {
                   if (onMatchUpdate) {
-                    onMatchUpdate({ ...match, opponent_team: newTeam });
+                    onMatchUpdate({ ...match, opponent_team: newTeam as any });
                   }
                 }}
               />
-            )}
+            </div>
           </div>
         )}
       </div>
