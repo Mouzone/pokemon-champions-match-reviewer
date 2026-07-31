@@ -7,6 +7,7 @@ import TeamsManager from './pages/TeamsManager';
 import { Login } from './components/Login';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from './lib/firebase';
+import { LogOut } from 'lucide-react';
 
 // Using index.css imported in main.tsx
 
@@ -67,6 +68,38 @@ function App() {
           </Routes>
         ) : (
           <div className="app-container">
+            <header style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem 2rem 0', maxWidth: '1200px', width: '100%', margin: '0 auto' }}>
+              <button 
+                onClick={() => auth.signOut()}
+                className="interactive"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  padding: '0.5rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--danger)';
+                  e.currentTarget.style.borderColor = 'var(--danger)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.borderColor = 'var(--border-color)';
+                }}
+                title="Logout"
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
+            </header>
             <NavigationDrawer />
 
             <main className="content">
