@@ -4,6 +4,9 @@ import { AppContext } from './AppContext';
 import { GlobalProgress } from './components/GlobalProgress';
 import Home from './pages/Home';
 import TeamsManager from './pages/TeamsManager';
+import { Login } from './components/Login';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { auth } from './lib/firebase';
 
 
 
@@ -36,6 +39,29 @@ function NavigationDrawer() {
 
 function App() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoadingAuth(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loadingAuth) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: 'var(--bg-primary, #1e1e24)', color: 'var(--text-primary, #ffffff)' }}>
+        <h2>Loading...</h2>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login onSuccess={() => {}} />;
+  }
 
   return (
     <AppContext.Provider value={{ isDrawerOpen, setIsDrawerOpen }}>

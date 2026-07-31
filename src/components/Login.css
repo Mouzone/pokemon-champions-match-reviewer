@@ -1,0 +1,149 @@
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  padding: 20px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: 320px;
+}
+
+.login-header {
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group input {
+  padding: 0.5rem 0;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  background-color: transparent;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  outline: none;
+  border-radius: 0;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input::placeholder {
+  color: var(--text-muted);
+  font-weight: 300;
+  text-transform: lowercase;
+}
+
+.form-group input:focus {
+  border-bottom-color: var(--primary);
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.minimal-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-transform: lowercase;
+  user-select: none;
+}
+
+.minimal-checkbox input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  height: 12px;
+  width: 12px;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  display: inline-block;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.minimal-checkbox:hover input ~ .checkmark {
+  border-color: var(--text-secondary);
+}
+
+.minimal-checkbox input:checked ~ .checkmark {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.minimal-checkbox input:checked ~ .checkmark:after {
+  display: block;
+  left: 3px;
+  top: 1px;
+  width: 2px;
+  height: 5px;
+  border: solid var(--bg-surface);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+.login-button {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-button:hover:not(:disabled) {
+  transform: translateX(4px);
+  opacity: 0.7;
+}
+
+.login-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.login-error {
+  background: transparent;
+  color: var(--loss-text);
+  font-size: 0.85rem;
+  text-align: center;
+  border: none;
+  padding: 0;
+}
