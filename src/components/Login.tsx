@@ -37,11 +37,7 @@ export function Login({ onSuccess }: LoginProps) {
   return (
     <div className="login-container">
       <form onSubmit={handleSubmit} className="login-form">
-        <div className="login-header">
-          <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>⚔️</div>
-          <div>Match Reviewer</div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500, marginTop: '0.25rem', fontFamily: 'var(--font-sans)' }}>Pokémon Champions</div>
-        </div>
+
         {error && <div className="login-error">{error}</div>}
         
         <div className="form-group">

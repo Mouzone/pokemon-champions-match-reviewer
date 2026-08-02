@@ -84,7 +84,7 @@ export const MatchRow: React.FC<MatchRowProps> = React.memo(({ match, expanded, 
             {Array.from({length: 6}).map((_, i) => {
               const p = opponentTeam[i];
               return (
-                <div key={i} title={p?.name || ''} className="pokemon-icon-wrapper" style={{ zIndex: 6 - i, width: 'clamp(40px, 5.5vw, 68px)', height: 'clamp(40px, 5.5vw, 68px)' }}>
+                <div key={i} title={p?.name || ''} className="pokemon-icon-wrapper" style={{ zIndex: 6 - i, width: 'clamp(36px, 4.5vw, 56px)', height: 'clamp(36px, 4.5vw, 56px)' }}>
                   {p ? <PokemonIcon name={p.name} className="pokemon-icon" /> : null}
                 </div>
               );

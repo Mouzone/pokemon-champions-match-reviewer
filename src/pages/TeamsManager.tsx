@@ -61,10 +61,10 @@ const TeamCard = ({ team, onEdit, onDelete, openMenuId, setOpenMenuId }: any) =>
       </div>
       
       {parsedTeam.length > 0 && (
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '1.5rem' }}>
           {parsedTeam.map((p, i) => (
-            <div key={i} title={p.name} style={{ width: 'clamp(56px, 12vw, 76px)', aspectRatio: '1/1', backgroundColor: 'var(--bg-active)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <PokemonIcon name={p.name} style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }} />
+            <div key={i} title={p.name} style={{ width: '100%', aspectRatio: '1/1', backgroundColor: 'var(--bg-active)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <PokemonIcon name={p.name} style={{ maxWidth: '85%', maxHeight: '85%', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }} />
             </div>
           ))}
         </div>
@@ -178,7 +178,7 @@ export default function TeamsManager() {
     <div className="page-container">
       {/* Page Header Removed */}
 
-      <div className="flex flex-col" style={{ gap: '0.5rem', marginTop: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start', marginTop: '1rem' }}>
 
         {fetching ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>

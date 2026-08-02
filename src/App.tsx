@@ -28,9 +28,8 @@ function App() {
 
   if (loadingAuth) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: 'var(--bg-base)', color: 'var(--text-muted)', gap: '1rem' }}>
-        <div style={{ fontSize: '2rem' }}>⚔️</div>
-        <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.25px' }}>Match Reviewer</div>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: '1rem', backgroundColor: 'var(--bg-base)' }}>
+        <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, color: 'var(--text-muted)' }}>Loading...</div>
       </div>
     );
   }

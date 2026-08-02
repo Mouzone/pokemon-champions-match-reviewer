@@ -83,9 +83,6 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
         gridTemplateColumns: 'repeat(3, 1fr)',
         gridTemplateRows: 'repeat(2, 1fr)',
         gap: '0.5rem',
-        padding: '0.25rem 0',
-        backgroundColor: 'transparent',
-        border: 'none',
         width: '100%',
         flex: 1,
         minHeight: 0
@@ -101,29 +98,29 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '8px 6px',
+                padding: '0.25rem',
                 backgroundColor: 'var(--bg-surface-hover)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-md)',
-                flex: 1,
                 minWidth: 0,
-                boxShadow: 'var(--shadow-sm)'
+                boxShadow: 'var(--shadow-sm)',
+                overflow: 'hidden'
               }}>
                 <button
                   onClick={() => handleRemove(index)}
                   style={{
                     position: 'absolute',
-                    top: '-8px',
-                    right: '-8px',
+                    top: '2px',
+                    right: '2px',
                     background: 'var(--bg-surface)',
                     border: '1px solid var(--border-color)',
                     borderRadius: '50%',
-                    width: '22px',
-                    height: '22px',
+                    width: '20px',
+                    height: '20px',
                     color: 'var(--loss-text)',
                     cursor: 'pointer',
                     fontWeight: 900,
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -134,16 +131,16 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
                 >
                   ✕
                 </button>
-                <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: '4px', marginBottom: '2px' }}>
+                <div style={{ display: 'flex', width: '100%', flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                   <img 
                     src={`https://play.pokemonshowdown.com/sprites/gen5/${getShowdownSpriteName(p.name)}.png`} 
                     alt={p.name}
-                    style={{ width: '100%', maxWidth: '60px', height: 60, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}
+                    style={{ width: '100%', height: '100%', maxWidth: '50px', maxHeight: '50px', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png';
                     }}
                   />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     {p.types?.map((t: string) => {
                       const Icon = TypeIcons[t.toLowerCase()];
                       return Icon ? (
@@ -154,7 +151,7 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
                     })}
                   </div>
                 </div>
-                <span style={{ textTransform: 'capitalize', fontWeight: 800, fontSize: '0.8rem', marginBottom: '0', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', display: 'block' }} title={p.name.replace('-', ' ')}>
+                <span style={{ textTransform: 'capitalize', fontWeight: 800, fontSize: '0.75rem', marginBottom: '0', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', display: 'block' }} title={p.name.replace('-', ' ')}>
                   {p.name.replace('-', ' ')}
                 </span>
               </div>
@@ -171,7 +168,6 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
               backgroundColor: 'transparent',
               border: '2px dashed var(--border-color)',
               borderRadius: 'var(--radius-sm)',
-              flex: 1,
               minWidth: 0,
               overflow: 'hidden'
             }}>

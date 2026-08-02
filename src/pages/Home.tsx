@@ -1,57 +1,145 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '../lib/firebase';
-import { collection, query, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, onSnapshot, limit } from 'firebase/firestore';
 import type { Match, Team } from '../lib/types';
 import MatchDetail from './MatchDetail';
 import { MatchRow } from '../components/MatchRow';
+
+interface MatchDetailWrapperProps {
+  match: Match & { teams: Team };
+  expandedMatchId: string | null;
+  allTeams: Team[];
+  notesCache: Record<string, any>;
+  updateNotesCache: (matchId: string, data: any) => void;
+  onMatchUpdate: (updated: (Match & { teams: Team }) | null) => void;
+}
+
+function MatchDetailWrapper({ match, expandedMatchId, allTeams, notesCache, updateNotesCache, onMatchUpdate }: MatchDetailWrapperProps) {
+  const isExpanded = expandedMatchId === match.id;
+  const [shouldRender, setRender] = useState(isExpanded);
+
+  if (isExpanded && !shouldRender) {
+    setRender(true);
+  }
+
+  useEffect(() => {
+    if (!isExpanded) {
+      const t = setTimeout(() => setRender(false), 200);
+      return () => clearTimeout(t);
+    }
+  }, [isExpanded]);
+
+  return (
+    <div className={`match-detail-wrapper ${isExpanded ? 'expanded' : ''}`}>
+      <div className="match-detail-inner">
+        {shouldRender && (
+          <MatchDetail 
+            match={match} 
+            allTeams={allTeams}
+            notesCache={notesCache}
+            updateNotesCache={updateNotesCache}
+            onMatchUpdate={onMatchUpdate} 
+          />
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [matches, setMatches] = useState<(Match & { teams: Team })[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [teamsLoaded, setTeamsLoaded] = useState(false);
+  
+  const [limitCount, setLimitCount] = useState(5);
+  const [hasMore, setHasMore] = useState(true);
+  
+  const observerTarget = useRef(null);
+  
+  // Cache for match notes to prevent refetching when expanding/retracting
+  const notesCache = useRef<Record<string, any>>({});
 
   const toggleMatch = (id: string) => {
     setExpandedMatchId(prev => prev === id ? null : id);
   };
 
   useEffect(() => {
-    let unsubscribeMatches: () => void;
-    let teamsMap: Record<string, Team> = {};
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore) {
+          setLimitCount(prev => prev + 5);
+        }
+      },
+      { threshold: 0.1 }
+    );
 
-    const setupListeners = async () => {
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    const currentTarget = observerTarget.current;
+    return () => {
+      if (currentTarget) observer.unobserve(currentTarget);
+    };
+  }, [hasMore, observerTarget.current, loading]); // Need loading dependency to re-bind if element mounts late
+
+  // Fetch teams once on mount
+  useEffect(() => {
+    const fetchTeams = async () => {
       try {
         const teamsSnap = await getDocs(collection(db, 'teams'));
-        teamsSnap.docs.forEach(d => {
-          teamsMap[d.id] = { id: d.id, ...d.data() } as Team;
-        });
-
-        const q = query(collection(db, 'matches'), orderBy('played_at', 'desc'));
-        unsubscribeMatches = onSnapshot(q, (matchesSnap) => {
-          const rawMatches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Match));
-          const fetchedMatches = rawMatches.map(m => ({
-            ...m,
-            teams: m.own_team_id ? teamsMap[m.own_team_id] : (null as unknown as Team)
-          }));
-
-          fetchedMatches.sort((a: any, b: any) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
-          setMatches(fetchedMatches);
-          setLoading(false);
-        }, (error) => {
-          console.error('Error fetching matches:', error);
-          setLoading(false);
-        });
+        const teamsList = teamsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Team));
+        setAllTeams(teamsList);
       } catch (error) {
-        console.error('Error setting up listeners:', error);
-        setLoading(false);
+        console.error('Error fetching teams:', error);
+      } finally {
+        setTeamsLoaded(true);
       }
     };
+    fetchTeams();
+  }, []);
 
-    setupListeners();
+  // Listen to matches
+  useEffect(() => {
+    if (!teamsLoaded) return;
+
+    let unsubscribeMatches: () => void;
+    const teamsMap: Record<string, Team> = {};
+    allTeams.forEach(t => teamsMap[t.id] = t);
+
+    try {
+      const q = query(collection(db, 'matches'), orderBy('played_at', 'desc'), limit(limitCount));
+      unsubscribeMatches = onSnapshot(q, (matchesSnap) => {
+        const rawMatches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Match));
+        const fetchedMatches = rawMatches.map(m => ({
+          ...m,
+          teams: m.own_team_id ? teamsMap[m.own_team_id] : (null as unknown as Team)
+        }));
+
+        fetchedMatches.sort((a: any, b: any) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
+        setMatches(fetchedMatches);
+        
+        if (matchesSnap.docs.length < limitCount) {
+          setHasMore(false);
+        } else {
+          setHasMore(true);
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error('Error fetching matches:', error);
+        setLoading(false);
+      });
+    } catch (error) {
+      console.error('Error setting up listeners:', error);
+      setLoading(false);
+    }
 
     return () => {
       if (unsubscribeMatches) unsubscribeMatches();
     };
-  }, []);
+  }, [teamsLoaded, allTeams, limitCount]);
 
   return (
     <div className="page-container">
@@ -79,18 +167,36 @@ export default function Home() {
                 }} 
               />
               
-              {expandedMatchId === match.id && (
-                <MatchDetail match={match} onMatchUpdate={(updated) => {
+              <MatchDetailWrapper 
+                match={match}
+                expandedMatchId={expandedMatchId}
+                allTeams={allTeams}
+                notesCache={notesCache.current}
+                updateNotesCache={(matchId, data) => { notesCache.current[matchId] = data; }}
+                onMatchUpdate={(updated) => {
                   if (updated === null) {
                     setMatches(matches.filter(m => m.id !== match.id));
-                    setExpandedMatchId(null);
+                    if (expandedMatchId === match.id) setExpandedMatchId(null);
                   } else {
                     setMatches(matches.map(m => m.id === updated.id ? updated : m));
                   }
-                }} />
-              )}
+                }}
+              />
             </div>
           ))
+        )}
+
+        {/* Infinite Scroll Sentinel */}
+        {matches.length > 0 && hasMore && (
+          <div ref={observerTarget} style={{ padding: '1rem', textAlign: 'center' }}>
+            <span className="text-muted" style={{ fontSize: '0.85rem' }}>Loading more matches...</span>
+          </div>
+        )}
+        
+        {matches.length > 0 && !hasMore && (
+          <div style={{ padding: '2rem', textAlign: 'center' }}>
+            <span className="text-muted" style={{ fontSize: '0.85rem' }}>No more matches to load.</span>
+          </div>
         )}
       </div>
     </div>

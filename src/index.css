@@ -671,3 +671,21 @@ button {
   transform: none;
   box-shadow: none;
 }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Match Detail Animation */
+.match-detail-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.match-detail-wrapper.expanded {
+  grid-template-rows: 1fr;
+}
+
+.match-detail-inner {
+  min-height: 0;
+  overflow: hidden;
+}

@@ -11,16 +11,18 @@ import { OpponentTeamTab } from '../components/OpponentTeamTab';
 
 interface MatchDetailProps {
   match: Match & { teams: Team };
+  allTeams: Team[];
+  notesCache: Record<string, any>;
+  updateNotesCache: (matchId: string, data: any) => void;
   onMatchUpdate?: (updated: (Match & { teams: Team }) | null) => void;
 }
 
 type TurnData = { events: string; notes: string; knowns: string; assumptions: string; id?: string };
 
-export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) {
+export default function MatchDetail({ match, allTeams, notesCache, updateNotesCache, onMatchUpdate }: MatchDetailProps) {
   const [activeTab, setActiveTab] = useState<'reference' | 'notes' | 'improvements'>('reference');
 
-  const [loading, setLoading] = useState(true);
-  const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(false);
 
 
   const [improvementsNote, setImprovementsNote] = useState('');
@@ -43,7 +45,6 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
 
   useEffect(() => {
     fetchNotes();
-    fetchTeams();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match.id]);
 
@@ -58,18 +59,14 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
     }
   }, [match.video_url]);
 
-  const fetchTeams = async () => {
-    try {
-      const q = query(collection(db, 'teams'), orderBy('created_at', 'desc'));
-      const snap = await getDocs(q);
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
-      setAllTeams(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const fetchNotes = async () => {
+    if (notesCache[match.id]) {
+      const cached = notesCache[match.id];
+      setTurnNotes(cached.turnNotes);
+      setImprovementsNote(cached.improvementsNote);
+      return;
+    }
+
     setLoading(true);
     try {
       const q = query(collection(db, 'match_notes'), where('match_id', '==', match.id));
@@ -77,9 +74,11 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
       const notesData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       
       const tNotes: any = {};
+      let impNote = '';
       notesData.forEach((n: any) => {
         if (n.tab === 'improvements') {
-          setImprovementsNote(n.actual_note || '');
+          impNote = n.actual_note || '';
+          setImprovementsNote(impNote);
         } else if (n.tab === 'select' || n.tab === 'battle') {
           const turnNum = n.tab === 'select' ? 0 : n.turn_number;
           if (turnNum !== null && turnNum !== undefined) {
@@ -104,6 +103,7 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
         }
       });
       setTurnNotes(tNotes);
+      updateNotesCache(match.id, { turnNotes: tNotes, improvementsNote: impNote });
     } catch (e) {
       console.error(e);
     }
@@ -180,24 +180,24 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
 
   const currentTurnData = turnNotes[currentTurn] || { events: '', notes: '', knowns: '', assumptions: '' };
 
-  if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}><p>Loading notes...</p></div>;
-
   return (
     <div className="match-detail-container">
       
       {/* Left side: Video Player */}
-      <div className="match-detail-video" style={{ flex: 1.5, minWidth: 0, display: 'flex', alignItems: 'flex-start' }}>
-        <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: 'var(--bg-base)', overflow: 'hidden', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'center' }}>
+      <div className="match-detail-video" style={{ flex: 1.5, minWidth: 0, minHeight: 300, display: 'flex', backgroundColor: '#000', borderRadius: 'var(--radius-lg)', overflow: 'hidden', position: 'relative' }}>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           {videoSrc ? (
             <ReactPlayer 
               src={videoSrc} 
               controls 
               width="100%" 
               height="100%"
+              style={{ position: 'absolute', top: 0, left: 0 }}
+              light={true} // Shows a play button thumbnail to delay loading heavy iframe
             />
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-              Loading video...
+              No video available
             </div>
           )}
         </div>
@@ -235,7 +235,7 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
               {/* Left Box */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, gap: '4px' }}>
                 {/* Underline tab selectors */}
-                <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)' }}>
+                <div className="hide-scrollbar" style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', overflowX: 'auto' }}>
                   {boxOptions.map(o => (
                     <button
                       key={o.value}
@@ -271,7 +271,7 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
 
               {/* Right Box */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, gap: '4px' }}>
-                <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)' }}>
+                <div className="hide-scrollbar" style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', overflowX: 'auto' }}>
                   {boxOptions.map(o => (
                     <button
                       key={o.value}
@@ -375,7 +375,7 @@ export default function MatchDetail({ match, onMatchUpdate }: MatchDetailProps) 
               </select>
             </div>
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <OpponentTeamTab 
                 matchId={match.id} 
                 initialTeam={match.opponent_team || []}
