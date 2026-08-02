@@ -86,12 +86,36 @@ export function formatPokeApiName(name: string): string {
 
 export function getShowdownSpriteName(name: string): string {
   const base = formatPokeApiName(name.replace(/\([MF]\)/i, ''));
-  if (base === 'ursaluna-bloodmoon') return 'ursaluna-bloodmoon';
-  if (base === 'ogerpon-wellspring') return 'ogerpon-wellspring';
-  if (base === 'ogerpon-hearthflame') return 'ogerpon-hearthflame';
-  if (base === 'ogerpon-cornerstone') return 'ogerpon-cornerstone';
+
+  // Explicit form mappings that Showdown uses with hyphens
+  const HYPHENATED_FORMS: Record<string, string> = {
+    'ursaluna-bloodmoon': 'ursaluna-bloodmoon',
+    'ogerpon-wellspring': 'ogerpon-wellspring',
+    'ogerpon-hearthflame': 'ogerpon-hearthflame',
+    'ogerpon-cornerstone': 'ogerpon-cornerstone',
+    'indeedee-f': 'indeedee-f',
+    'meowstic-f': 'meowstic-f',
+    'basculegion-f': 'basculegion-f',
+    'oinkologne-f': 'oinkologne-f',
+    'toxtricity-low-key': 'toxtricity-lowkey',
+    'floette-eternal': 'floette-eternal',
+  };
+
+  if (HYPHENATED_FORMS[base]) return HYPHENATED_FORMS[base];
+
+  // Gender-suffixed forms: strip -male (default form), keep -f (female form)
+  if (base.endsWith('-male')) {
+    const stripped = base.replace('-male', '');
+    return stripped.replace(/-/g, '');
+  }
+  if (base.endsWith('-female')) {
+    const stripped = base.replace('-female', '-f');
+    // Check if it's a known hyphenated female form
+    if (HYPHENATED_FORMS[stripped]) return HYPHENATED_FORMS[stripped];
+    return stripped.replace(/-/g, '');
+  }
+
   if (base.startsWith('urshifu-rapid')) return 'urshifu-rapidstrike';
-  if (base === 'floette-eternal') return base;
   if (base.endsWith('-incarnate')) return base.replace('-incarnate', '');
   if (base.includes('-therian')) return base;
   if (base.includes('-mega')) return base.replace(/-mega-([xy])/i, '-mega$1');

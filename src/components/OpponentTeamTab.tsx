@@ -110,6 +110,7 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
                     position: 'absolute',
                     top: '2px',
                     right: '2px',
+                    zIndex: 10,
                     background: 'var(--bg-surface)',
                     border: '1px solid var(--border-color)',
                     borderRadius: '50%',
