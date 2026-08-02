@@ -21,8 +21,8 @@ async function runVideoReview(fileBucket, filePath, contentType, jobId) {
         });
         const PROJECT_ID = process.env.GCLOUD_PROJECT || "matchreviewer-automation";
         const LOCATION = "us-central1"; // Vertex AI location
-        // Fetch teams
-        const teamsSnap = await db.collection('teams').get();
+        // Fetch teams ordered by newest first
+        const teamsSnap = await db.collection('teams').orderBy('created_at', 'desc').get();
         const teams = teamsSnap.docs.map(d => (Object.assign({ id: d.id }, d.data())));
         let teamListString = "";
         if (teams && teams.length > 0) {
@@ -48,6 +48,7 @@ Task 1: Identify My Team
 - Look at the Team Preview screen. There are 12 Pokemon shown (6 for me on one side, 6 for the opponent on the other).
 - Below is a list of my saved teams. Analyze all 12 Pokemon on the Team Preview screen and find which group of 6 perfectly matches (or most closely matches) one of my saved teams.
 - Save the ID of the matched team.
+- IMPORTANT: If multiple teams have the exact same Pokemon, ALWAYS select the FIRST matching team in the list (this ensures the most recently uploaded team is used).
 
 My Saved Teams:
 ${teamListString}
@@ -176,14 +177,14 @@ exports.manualProcessMatch = (0, https_1.onCall)({ region: "us-east1", timeoutSe
 exports.cleanupOldVideos = (0, scheduler_1.onSchedule)({ schedule: "every day 00:00", region: "us-east1", timeoutSeconds: 540 }, async (event) => {
     const bucket = (0, storage_2.getStorage)().bucket("matchreviewer-automation.firebasestorage.app");
     const [files] = await bucket.getFiles({ prefix: 'videos/' });
-    const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+    const fiveDaysAgo = Date.now() - 5 * 24 * 60 * 60 * 1000;
     let deletedCount = 0;
     for (const file of files) {
         try {
             const [metadata] = await file.getMetadata();
             if (metadata && metadata.timeCreated) {
                 const timeCreated = new Date(metadata.timeCreated).getTime();
-                if (timeCreated < threeDaysAgo) {
+                if (timeCreated < fiveDaysAgo) {
                     await file.delete();
                     console.log(`Deleted old video: ${file.name}`);
                     deletedCount++;

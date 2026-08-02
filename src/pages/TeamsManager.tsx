@@ -17,7 +17,15 @@ const TeamCard = ({ team, onEdit, onDelete, openMenuId, setOpenMenuId }: any) =>
   return (
     <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', marginBottom: '1rem', transition: 'transform 0.3s, box-shadow 0.3s' }} className="interactive">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <h3 style={{ textTransform: 'uppercase', fontWeight: 800, margin: '0 0 1.5rem 0', letterSpacing: '1px' }}>{team.name}</h3>
+        <div>
+          <h3 style={{ textTransform: 'uppercase', fontWeight: 800, margin: '0 0 0.25rem 0', letterSpacing: '1px' }}>{team.name}</h3>
+          {team.created_at && (
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+              {typeof team.created_at.toDate === 'function' ? team.created_at.toDate().toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : new Date(team.created_at).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+            </div>
+          )}
+          {!team.created_at && <div style={{ marginBottom: '1.25rem' }}></div>}
+        </div>
         
         <div style={{ position: 'relative' }}>
           <button 
@@ -81,7 +89,7 @@ const TeamCard = ({ team, onEdit, onDelete, openMenuId, setOpenMenuId }: any) =>
       </div>
 
       {showExport && team.paste_text && (
-        <div style={{ marginTop: '1.5rem', animation: 'fadeIn 0.3s' }}>
+        <div style={{ marginTop: '1.5rem', animation: 'fadeIn 0.3s', position: 'relative' }}>
           <pre style={{ padding: '1.25rem', backgroundColor: 'var(--bg-active)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', whiteSpace: 'pre-wrap', fontSize: '0.85rem', lineHeight: '1.6', color: 'var(--text-secondary)', margin: 0, maxHeight: '300px', overflowY: 'auto' }}>
             {team.paste_text}
           </pre>

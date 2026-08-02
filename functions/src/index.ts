@@ -23,8 +23,8 @@ async function runVideoReview(fileBucket: string, filePath: string, contentType:
     const PROJECT_ID = process.env.GCLOUD_PROJECT || "matchreviewer-automation";
     const LOCATION = "us-central1"; // Vertex AI location
 
-    // Fetch teams
-    const teamsSnap = await db.collection('teams').get();
+    // Fetch teams ordered by newest first
+    const teamsSnap = await db.collection('teams').orderBy('created_at', 'desc').get();
     const teams = teamsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     let teamListString = "";
@@ -54,6 +54,7 @@ Task 1: Identify My Team
 - Look at the Team Preview screen. There are 12 Pokemon shown (6 for me on one side, 6 for the opponent on the other).
 - Below is a list of my saved teams. Analyze all 12 Pokemon on the Team Preview screen and find which group of 6 perfectly matches (or most closely matches) one of my saved teams.
 - Save the ID of the matched team.
+- IMPORTANT: If multiple teams have the exact same Pokemon, ALWAYS select the FIRST matching team in the list (this ensures the most recently uploaded team is used).
 
 My Saved Teams:
 ${teamListString}
