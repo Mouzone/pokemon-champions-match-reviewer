@@ -85,7 +85,21 @@ export function formatPokeApiName(name: string): string {
 }
 
 export function getShowdownSpriteName(name: string): string {
-  const base = formatPokeApiName(name.replace(/\([MF]\)/i, ''));
+  let base = formatPokeApiName(name.replace(/\([MF]\)/i, ''));
+
+  // Standardize regional prefixes to suffixes
+  const regions: Record<string, string> = {
+    'alolan-': '-alola',
+    'galarian-': '-galar',
+    'hisuian-': '-hisui',
+    'paldean-': '-paldea'
+  };
+  for (const [prefix, suffix] of Object.entries(regions)) {
+    if (base.startsWith(prefix)) {
+      base = base.replace(prefix, '') + suffix;
+      break;
+    }
+  }
 
   // Explicit form mappings that Showdown uses with hyphens
   const HYPHENATED_FORMS: Record<string, string> = {
@@ -102,6 +116,9 @@ export function getShowdownSpriteName(name: string): string {
   };
 
   if (HYPHENATED_FORMS[base]) return HYPHENATED_FORMS[base];
+
+  // Keep hyphens for common regional and alternate form suffixes
+  if (base.match(/-(alola|galar|hisui|paldea|gmax|primal|origin|crowned|ice|shadow)$/)) return base;
 
   // Gender-suffixed forms: strip -male (default form), keep -f (female form)
   if (base.endsWith('-male')) {
