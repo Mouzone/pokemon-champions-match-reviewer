@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
 import { db } from '../lib/firebase';
-import { collection, query, orderBy, getDocs, doc, updateDoc, addDoc, where } from 'firebase/firestore';
+import { collection, query, getDocs, doc, updateDoc, addDoc, where } from 'firebase/firestore';
 import type { Match, Team } from '../lib/types';
 
 import { Button } from '../components/ui/Button';
@@ -22,7 +22,7 @@ type TurnData = { events: string; notes: string; knowns: string; assumptions: st
 export default function MatchDetail({ match, allTeams, notesCache, updateNotesCache, onMatchUpdate }: MatchDetailProps) {
   const [activeTab, setActiveTab] = useState<'reference' | 'notes' | 'improvements'>('reference');
 
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
 
   const [improvementsNote, setImprovementsNote] = useState('');

@@ -23,7 +23,6 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
 
   useEffect(() => {
     async function fetchTypes() {
-      let changed = false;
       const enriched = await Promise.all(team.map(async (p) => {
         if (!p) return null;
         if (typeCache[p.name]) {
@@ -38,7 +37,6 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
             const data = await res.json();
             const types = data.types.map((t: any) => t.type.name);
             typeCache[p.name] = types;
-            changed = true;
             return { ...p, types };
           }
         } catch (e) {
