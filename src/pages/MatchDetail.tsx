@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
 import { db } from '../lib/firebase';
 import { collection, query, getDocs, doc, updateDoc, addDoc, where } from 'firebase/firestore';
@@ -27,6 +27,10 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
 
   const [improvementsNote, setImprovementsNote] = useState('');
   const [currentTurn, setCurrentTurn] = useState(0); // 0 = Turn 0, 1+ = Battle Turn
+  
+  const [loaded, setLoaded] = useState(false);
+  const saveTurnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveImpTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const [turnNotes, setTurnNotes] = useState<{ [turn: number]: TurnData }>({});
   const [saving, setSaving] = useState(false);
@@ -64,6 +68,7 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
       const cached = notesCache[match.id];
       setTurnNotes(cached.turnNotes);
       setImprovementsNote(cached.improvementsNote);
+      setLoaded(true);
       return;
     }
 
@@ -108,7 +113,14 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
       console.error(e);
     }
     setLoading(false);
+    setLoaded(true);
   };
+
+  useEffect(() => {
+    if (loaded) {
+      updateNotesCache(match.id, { turnNotes, improvementsNote });
+    }
+  }, [turnNotes, improvementsNote, loaded, match.id, updateNotesCache]);
 
   const handleTurnChange = (newTurn: number) => {
     setCurrentTurn(newTurn);
@@ -133,29 +145,51 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
     });
   };
 
-  const saveImprovementsNote = async () => {
+  const saveTurnNoteToDb = async (turn: number, data: TurnData) => {
     setSaving(true);
-    await upsertNote('improvements', undefined, improvementsNote, '');
-    setSaving(false);
-  };
-
-  const saveTurnNote = async () => {
-    setSaving(true);
-    const dataToSave = turnNotes[currentTurn] || { events: '', notes: '', knowns: '', assumptions: '' };
     const payload = JSON.stringify({
-      events: dataToSave.events,
-      notes: dataToSave.notes,
-      knowns: dataToSave.knowns,
-      assumptions: dataToSave.assumptions
+      events: data.events || '',
+      notes: data.notes || '',
+      knowns: data.knowns || '',
+      assumptions: data.assumptions || ''
     });
     
-    if (currentTurn === 0) {
+    if (turn === 0) {
       await upsertNote('select', undefined, payload, '');
     } else {
-      await upsertNote('battle', currentTurn, payload, '');
+      await upsertNote('battle', turn, payload, '');
     }
     
     setSaving(false);
+  };
+
+  const handleTurnNoteChange = (box: keyof TurnData, val: string) => {
+    setTurnNotes(prev => {
+      const next = { ...prev };
+      next[currentTurn] = { ...(next[currentTurn] || { events: '', notes: '', knowns: '', assumptions: '' }), [box]: val };
+      
+      if (saveTurnTimeoutRef.current) clearTimeout(saveTurnTimeoutRef.current);
+      
+      const turnToSave = currentTurn;
+      const dataToSave = next[currentTurn];
+      
+      saveTurnTimeoutRef.current = setTimeout(() => {
+        saveTurnNoteToDb(turnToSave, dataToSave);
+      }, 1500);
+      
+      return next;
+    });
+  };
+
+  const handleImprovementsChange = (val: string) => {
+    setImprovementsNote(val);
+    
+    if (saveImpTimeoutRef.current) clearTimeout(saveImpTimeoutRef.current);
+    saveImpTimeoutRef.current = setTimeout(async () => {
+      setSaving(true);
+      await upsertNote('improvements', undefined, val, '');
+      setSaving(false);
+    }, 1500);
   };
 
   const upsertNote = async (tab: string, turn?: number, actual?: string, correct?: string) => {
@@ -263,7 +297,7 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <MarkdownEditor 
                     value={currentTurnData[leftBox] || ''} 
-                    onChange={val => setTurnNotes(prev => ({ ...prev, [currentTurn]: { ...prev[currentTurn], [leftBox]: val } }))} 
+                    onChange={val => handleTurnNoteChange(leftBox, val)} 
                     placeholder={`Write your ${leftBox} here...`}
                   />
                 </div>
@@ -299,16 +333,12 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <MarkdownEditor 
                     value={currentTurnData[rightBox] || ''} 
-                    onChange={val => setTurnNotes(prev => ({ ...prev, [currentTurn]: { ...prev[currentTurn], [rightBox]: val } }))} 
+                    onChange={val => handleTurnNoteChange(rightBox, val)} 
                     placeholder={`Write your ${rightBox} here...`}
                   />
                 </div>
               </div>
 
-            </div>
-
-            <div>
-              <Button onClick={saveTurnNote} disabled={saving} className="btn-primary" style={{ width: '100%', padding: '0.75rem' }}>{saving ? 'Saving...' : 'SAVE TURN NOTES'}</Button>
             </div>
           </div>
         )}
@@ -318,12 +348,9 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <MarkdownEditor 
                 value={improvementsNote} 
-                onChange={setImprovementsNote} 
+                onChange={handleImprovementsChange} 
                 placeholder="Summarize key takeaways..."
               />
-            </div>
-            <div>
-              <Button onClick={saveImprovementsNote} disabled={saving} className="btn-primary" style={{ width: '100%', padding: '0.75rem' }}>{saving ? 'Saving...' : 'SAVE NOTES'}</Button>
             </div>
           </div>
         )}
