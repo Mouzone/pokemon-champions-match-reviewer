@@ -4,7 +4,6 @@ import { db } from '../lib/firebase';
 import { collection, query, getDocs, doc, updateDoc, addDoc, where } from 'firebase/firestore';
 import type { Match, Team } from '../lib/types';
 
-import { Button } from '../components/ui/Button';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 
 import { OpponentTeamTab } from '../components/OpponentTeamTab';
@@ -29,11 +28,11 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
   const [currentTurn, setCurrentTurn] = useState(0); // 0 = Turn 0, 1+ = Battle Turn
   
   const [loaded, setLoaded] = useState(false);
-  const saveTurnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const saveImpTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTurnTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveImpTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const [turnNotes, setTurnNotes] = useState<{ [turn: number]: TurnData }>({});
-  const [saving, setSaving] = useState(false);
+  const [, setSaving] = useState(false);
 
   const [leftBox, setLeftBox] = useState<keyof TurnData>('events');
   const [rightBox, setRightBox] = useState<keyof TurnData>('notes');
