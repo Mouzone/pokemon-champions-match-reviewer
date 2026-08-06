@@ -113,6 +113,7 @@ export function getShowdownSpriteName(name: string): string {
     'oinkologne-f': 'oinkologne-f',
     'toxtricity-low-key': 'toxtricity-lowkey',
     'floette-eternal': 'floette-eternal',
+    'morpeko-hangry': 'morpeko-hangry',
   };
 
   if (HYPHENATED_FORMS[base]) return HYPHENATED_FORMS[base];
@@ -133,6 +134,7 @@ export function getShowdownSpriteName(name: string): string {
   }
 
   if (base.startsWith('urshifu-rapid')) return 'urshifu-rapidstrike';
+  if (base === 'morpeko-full-belly') return 'morpeko';
   if (base.endsWith('-incarnate')) return base.replace('-incarnate', '');
   if (base.includes('-therian')) return base;
   if (base.includes('-mega')) return base.replace(/-mega-([xy])/i, '-mega$1');

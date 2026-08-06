@@ -31,6 +31,7 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
         try {
           let fetchName = formatPokeApiName(p.name);
           if (fetchName.includes('ogerpon')) fetchName = 'ogerpon';
+          if (fetchName === 'morpeko') fetchName = 'morpeko-full-belly';
           
           const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${fetchName}`);
           if (res.ok) {
