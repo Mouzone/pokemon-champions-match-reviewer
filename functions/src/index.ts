@@ -318,27 +318,88 @@ export const manualProcessMatch = onCall({ region: "us-east1", timeoutSeconds: 5
 });
 
 export const cleanupOldVideos = onSchedule({ schedule: "every day 00:00", region: "us-east1", timeoutSeconds: 540 }, async (event) => {
+  const db = getFirestore();
   const bucket = getStorage().bucket("matchreviewer-automation.firebasestorage.app");
-  const [files] = await bucket.getFiles({ prefix: 'videos/' });
   
-  const fiveDaysAgo = Date.now() - 5 * 24 * 60 * 60 * 1000;
-  let deletedCount = 0;
+  const sevenDaysAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  let deletedVideoCount = 0;
   
-  for (const file of files) {
-    try {
-      const [metadata] = await file.getMetadata();
-      if (metadata && metadata.timeCreated) {
-        const timeCreated = new Date(metadata.timeCreated).getTime();
-        if (timeCreated < fiveDaysAgo) {
-          await file.delete();
-          console.log(`Deleted old video: ${file.name}`);
-          deletedCount++;
+  // 1. Delete Storage VODs older than 7 days
+  try {
+    const [files] = await bucket.getFiles({ prefix: 'videos/' });
+    for (const file of files) {
+      try {
+        const [metadata] = await file.getMetadata();
+        if (metadata && metadata.timeCreated) {
+          const timeCreated = new Date(metadata.timeCreated).getTime();
+          if (timeCreated < sevenDaysAgoMs) {
+            await file.delete();
+            console.log(`Deleted old video VOD: ${file.name}`);
+            deletedVideoCount++;
+          }
         }
+      } catch (err) {
+        console.error(`Failed to check or delete file ${file.name}:`, err);
       }
-    } catch (err) {
-      console.error(`Failed to check or delete file ${file.name}:`, err);
     }
+  } catch (err) {
+    console.error("Failed during storage VODs cleanup:", err);
   }
-  
-  console.log(`Cleanup complete. Deleted ${deletedCount} videos.`);
+
+  // 2. Delete Match Records & associated Match Notes older than 7 days
+  let deletedMatchCount = 0;
+  let deletedNotesCount = 0;
+
+  try {
+    const matchesSnap = await db.collection('matches').get();
+    for (const matchDoc of matchesSnap.docs) {
+      const data = matchDoc.data();
+      let matchTime = 0;
+      
+      if (data.created_at && typeof data.created_at.toMillis === 'function') {
+        matchTime = data.created_at.toMillis();
+      } else if (data.played_at) {
+        matchTime = new Date(data.played_at).getTime();
+      }
+
+      if (matchTime > 0 && matchTime < sevenDaysAgoMs) {
+        const matchId = matchDoc.id;
+        
+        // Delete all associated match_notes for this match
+        const notesSnap = await db.collection('match_notes').where('match_id', '==', matchId).get();
+        if (!notesSnap.empty) {
+          const batch = db.batch();
+          notesSnap.docs.forEach(nDoc => batch.delete(nDoc.ref));
+          await batch.commit();
+          deletedNotesCount += notesSnap.size;
+        }
+
+        // Delete the match record itself
+        await matchDoc.ref.delete();
+        deletedMatchCount++;
+        console.log(`Deleted old match record: ${matchId}`);
+      }
+    }
+  } catch (err) {
+    console.error("Failed during match records cleanup:", err);
+  }
+
+  // 3. Delete old processing_jobs older than 7 days
+  try {
+    const jobsSnap = await db.collection('processing_jobs').get();
+    for (const jobDoc of jobsSnap.docs) {
+      const jData = jobDoc.data();
+      let jobTime = 0;
+      if (jData.started_at && typeof jData.started_at.toMillis === 'function') {
+        jobTime = jData.started_at.toMillis();
+      }
+      if (jobTime > 0 && jobTime < sevenDaysAgoMs) {
+        await jobDoc.ref.delete();
+      }
+    }
+  } catch (err) {
+    console.error("Failed during processing jobs cleanup:", err);
+  }
+
+  console.log(`Cleanup complete. Deleted ${deletedVideoCount} VODs, ${deletedMatchCount} match records, and ${deletedNotesCount} note items.`);
 });
