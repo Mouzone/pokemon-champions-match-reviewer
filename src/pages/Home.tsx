@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { db } from '../lib/firebase';
-import { collection, query, orderBy, getDocs, onSnapshot, limit } from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
+import { collection, query, orderBy, getDocs, onSnapshot, limit, where } from 'firebase/firestore';
 import type { Match, Team } from '../lib/types';
 import MatchDetail from './MatchDetail';
 import { MatchRow } from '../components/MatchRow';
@@ -89,7 +89,9 @@ export default function Home() {
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        const teamsSnap = await getDocs(collection(db, 'teams'));
+        if (!auth.currentUser) return;
+        const q = query(collection(db, 'teams'), where('userId', '==', auth.currentUser.uid));
+        const teamsSnap = await getDocs(q);
         const teamsList = teamsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Team));
         setAllTeams(teamsList);
       } catch (error) {
@@ -110,7 +112,13 @@ export default function Home() {
     allTeams.forEach(t => teamsMap[t.id] = t);
 
     try {
-      const q = query(collection(db, 'matches'), orderBy('played_at', 'desc'), limit(limitCount));
+      if (!auth.currentUser) return;
+      const q = query(
+        collection(db, 'matches'), 
+        where('userId', '==', auth.currentUser.uid), 
+        orderBy('played_at', 'desc'), 
+        limit(limitCount)
+      );
       unsubscribeMatches = onSnapshot(q, (matchesSnap) => {
         const rawMatches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Match));
         const fetchedMatches = rawMatches.map(m => ({
@@ -151,7 +159,7 @@ export default function Home() {
             <p className="text-muted text-center">Loading matches...</p>
           </div>
         ) : matches.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '2rem', minHeight: '40vh' }}>
             <p className="text-muted text-center">No matches recorded yet. Click the + button to get started!</p>
           </div>
         ) : (

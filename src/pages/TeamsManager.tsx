@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { db } from '../lib/firebase';
-import { collection, query, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
+import { collection, query, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, where } from 'firebase/firestore';
 import type { Team } from '../lib/types';
 import { AppContext } from '../AppContext';
 import { Button } from '../components/ui/Button';
@@ -117,7 +117,8 @@ export default function TeamsManager() {
   const fetchTeams = async () => {
     setFetching(true);
     try {
-      const q = query(collection(db, 'teams'), orderBy('created_at', 'desc'));
+      if (!auth.currentUser) return;
+      const q = query(collection(db, 'teams'), where('userId', '==', auth.currentUser.uid), orderBy('created_at', 'desc'));
       const querySnapshot = await getDocs(q);
       const fetchedTeams = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
       setTeams(fetchedTeams);
@@ -160,9 +161,11 @@ export default function TeamsManager() {
           paste_text: pasteText
         });
       } else {
+        if (!auth.currentUser) return;
         await addDoc(collection(db, 'teams'), {
           name,
           paste_text: pasteText,
+          userId: auth.currentUser.uid,
           created_at: serverTimestamp()
         });
       }
@@ -189,11 +192,11 @@ export default function TeamsManager() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start', marginTop: '1rem' }}>
 
         {fetching ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <div style={{ textAlign: 'center', padding: '2rem', gridColumn: '1 / -1' }}>
             <p className="text-muted text-center">Loading teams...</p>
           </div>
         ) : teams.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '2rem', gridColumn: '1 / -1', minHeight: '40vh' }}>
             <p className="text-muted text-center">No teams created yet. Use the FAB to create one!</p>
           </div>
         ) : (

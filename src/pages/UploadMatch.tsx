@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { db, storage, functions } from '../lib/firebase';
-import { collection, query, orderBy, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, storage, functions, auth } from '../lib/firebase';
+import { collection, query, orderBy, getDocs, addDoc, serverTimestamp, where } from 'firebase/firestore';
 import { ref, listAll, getDownloadURL } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
 import type { Team } from '../lib/types';
@@ -46,7 +46,8 @@ export default function UploadMatch({ onSuccess }: UploadMatchProps) {
 
   const fetchTeams = async () => {
     try {
-      const q = query(collection(db, 'teams'), orderBy('created_at', 'desc'));
+      if (!auth.currentUser) return;
+      const q = query(collection(db, 'teams'), where('userId', '==', auth.currentUser.uid), orderBy('created_at', 'desc'));
       const querySnapshot = await getDocs(q);
       const fetchedTeams = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
       setTeams(fetchedTeams);
@@ -61,7 +62,8 @@ export default function UploadMatch({ onSuccess }: UploadMatchProps) {
   const fetchStorageFiles = async () => {
     setLoadingFiles(true);
     try {
-      const videosRef = ref(storage, 'videos');
+      if (!auth.currentUser) return;
+      const videosRef = ref(storage, `videos/${auth.currentUser.uid}`);
       const res = await listAll(videosRef);
       
       const filePromises = res.items.map(async (itemRef) => {
@@ -103,6 +105,7 @@ export default function UploadMatch({ onSuccess }: UploadMatchProps) {
         result: result,
         own_team_id: teamId || null,
         opponent_team: [],
+        userId: auth.currentUser?.uid,
         created_at: serverTimestamp()
       });
       if (onSuccess) onSuccess();

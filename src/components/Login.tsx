@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import './Login.css';
 
@@ -13,6 +13,7 @@ export function Login({ onSuccess }: LoginProps) {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,11 +25,15 @@ export function Login({ onSuccess }: LoginProps) {
       const persistenceType = rememberMe ? browserLocalPersistence : browserSessionPersistence;
       await setPersistence(auth, persistenceType);
       
-      await signInWithEmailAndPassword(auth, email, password);
+      if (isSignUp) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
       onSuccess();
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.message || 'Failed to login');
+      setError(err.message || (isSignUp ? 'Failed to create account' : 'Failed to login'));
     } finally {
       setLoading(false);
     }
@@ -76,7 +81,15 @@ export function Login({ onSuccess }: LoginProps) {
           </label>
           
           <button type="submit" disabled={loading} className="login-button">
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? (isSignUp ? 'Creating Account...' : 'Signing in...') : (isSignUp ? 'Create Account' : 'Sign In')}
+          </button>
+          
+          <button 
+            type="button" 
+            className="toggle-mode-button" 
+            onClick={() => setIsSignUp(!isSignUp)}
+          >
+            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
           </button>
         </div>
       </form>

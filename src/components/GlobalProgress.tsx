@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -22,9 +22,11 @@ export function GlobalProgress() {
     // Let's just grab the 5 most recent jobs to keep the widget relevant.
     
     // We will listen to all 'processing' jobs
+    if (!auth.currentUser) return;
     const q = query(
       collection(db, 'processing_jobs'),
-      where('status', '==', 'processing')
+      where('status', '==', 'processing'),
+      where('userId', '==', auth.currentUser.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {

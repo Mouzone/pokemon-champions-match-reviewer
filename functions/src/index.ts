@@ -8,7 +8,7 @@ import { GoogleGenAI } from "@google/genai";
 
 initializeApp();
 
-async function runVideoReview(fileBucket: string, filePath: string, contentType: string, jobId: string) {
+async function runVideoReview(fileBucket: string, filePath: string, contentType: string, jobId: string, userId: string) {
   const db = getFirestore();
   const jobRef = db.collection('processing_jobs').doc(jobId);
 
@@ -17,14 +17,15 @@ async function runVideoReview(fileBucket: string, filePath: string, contentType:
       file_path: filePath,
       status: 'processing',
       started_at: FieldValue.serverTimestamp(),
-      video_url: `gs://${fileBucket}/${filePath}`
+      video_url: `gs://${fileBucket}/${filePath}`,
+      userId: userId
     });
 
     const PROJECT_ID = process.env.GCLOUD_PROJECT || "matchreviewer-automation";
     const LOCATION = "us-central1"; // Vertex AI location
 
     // Fetch teams ordered by newest first
-    const teamsSnap = await db.collection('teams').orderBy('created_at', 'desc').get();
+    const teamsSnap = await db.collection('teams').where('userId', '==', userId).orderBy('created_at', 'desc').get();
     const teams = teamsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     let teamListString = "";
@@ -121,7 +122,7 @@ Output MUST be valid JSON matching this exact schema:
     }
     
     // Check if match already exists for this video to avoid duplicates during manual runs
-    const existingMatches = await db.collection('matches').where('video_url', '==', `gs://${fileBucket}/${filePath}`).get();
+    const existingMatches = await db.collection('matches').where('video_url', '==', `gs://${fileBucket}/${filePath}`).where('userId', '==', userId).get();
     
     if (existingMatches.empty) {
       await db.collection('matches').add({
@@ -130,6 +131,7 @@ Output MUST be valid JSON matching this exact schema:
         own_team_id: detectedTeamId,
         result: detectedResult,
         video_url: `gs://${fileBucket}/${filePath}`,
+        userId: userId,
         created_at: FieldValue.serverTimestamp()
       });
       console.log(`Match processed and saved successfully for job ${jobId}.`);
@@ -171,22 +173,34 @@ export const processMatch = onObjectFinalized({ region: "us-east1", timeoutSecon
     return;
   }
 
+  // Extract userId from filePath: videos/{userId}/{filename}
+  const parts = filePath.split('/');
+  if (parts.length < 3 || parts[0] !== 'videos') {
+    console.log("Invalid file path structure. Expected videos/{userId}/{filename}");
+    return;
+  }
+  const userId = parts[1];
+
   // Generate a predictable job ID based on the file name so multiple retries can use the same job
   const jobId = filePath.replace(/[^a-zA-Z0-9]/g, '_');
-  await runVideoReview(fileBucket, filePath, contentType, jobId);
+  await runVideoReview(fileBucket, filePath, contentType, jobId, userId);
 });
 
 export const manualProcessMatch = onCall({ region: "us-east1", timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
   const { filePath } = request.data;
+  const userId = request.auth?.uid;
   if (!filePath) {
     throw new HttpsError('invalid-argument', 'The function must be called with one argument "filePath".');
+  }
+  if (!userId) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated to process a match.');
   }
 
   const fileBucket = "matchreviewer-automation.firebasestorage.app"; // Default bucket
   const contentType = "video/mp4"; // Assume video for manual processing
   
   const jobId = filePath.replace(/[^a-zA-Z0-9]/g, '_') + '_manual_' + Date.now();
-  await runVideoReview(fileBucket, filePath, contentType, jobId);
+  await runVideoReview(fileBucket, filePath, contentType, jobId, userId);
   return { success: true, jobId };
 });
 

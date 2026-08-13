@@ -164,3 +164,21 @@
   padding: 0.5rem;
   font-weight: 500;
 }
+
+.toggle-mode-button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.85rem;
+  font-family: var(--font-sans, sans-serif);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: color 0.2s ease;
+  margin-top: -0.5rem;
+}
+
+.toggle-mode-button:hover {
+  color: var(--primary, #4f46e5);
+  text-decoration: underline;
+}

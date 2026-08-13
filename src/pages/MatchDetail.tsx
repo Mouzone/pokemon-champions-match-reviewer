@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { collection, query, getDocs, doc, updateDoc, addDoc, where } from 'firebase/firestore';
 import type { Match, Team } from '../lib/types';
 
@@ -73,7 +73,8 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
 
     setLoading(true);
     try {
-      const q = query(collection(db, 'match_notes'), where('match_id', '==', match.id));
+      if (!auth.currentUser) return;
+      const q = query(collection(db, 'match_notes'), where('userId', '==', auth.currentUser.uid), where('match_id', '==', match.id));
       const snap = await getDocs(q);
       const notesData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       
@@ -193,7 +194,8 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
 
   const upsertNote = async (tab: string, turn?: number, actual?: string, correct?: string) => {
     try {
-      let q = query(collection(db, 'match_notes'), where('match_id', '==', match.id), where('tab', '==', tab));
+      if (!auth.currentUser) return;
+      let q = query(collection(db, 'match_notes'), where('userId', '==', auth.currentUser.uid), where('match_id', '==', match.id), where('tab', '==', tab));
       if (turn !== undefined) {
         q = query(q, where('turn_number', '==', turn));
       }
@@ -204,7 +206,7 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
       if (existing) {
         await updateDoc(doc(db, 'match_notes', existing.id), { actual_note: actual, correct_note: correct });
       } else {
-        await addDoc(collection(db, 'match_notes'), { match_id: match.id, tab, turn_number: turn || null, actual_note: actual, correct_note: correct });
+        await addDoc(collection(db, 'match_notes'), { match_id: match.id, tab, turn_number: turn || null, actual_note: actual, correct_note: correct, userId: auth.currentUser.uid });
       }
     } catch (e) {
       console.error(e);

@@ -7,7 +7,8 @@ import TeamsManager from './pages/TeamsManager';
 import { Login } from './components/Login';
 import { FloatingActionMenu } from './components/FloatingActionMenu';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { auth } from './lib/firebase';
+import { auth, db } from './lib/firebase';
+import { collection, getDocs, writeBatch, doc } from 'firebase/firestore';
 import { Modal } from './components/ui/Modal';
 import UploadMatch from './pages/UploadMatch';
 
@@ -18,9 +19,41 @@ function App() {
   const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
 
   useEffect(() => {
+    const doMigrate = async (currentUser: User) => {
+      if (currentUser.email !== 'sunnyliu010@gmail.com') return;
+      if (localStorage.getItem('migrated_data_v2')) return;
+      
+      console.log('Running automatic data migration...');
+      try {
+        const collections = ['teams', 'matches', 'match_notes', 'processing_jobs'];
+        for (const c of collections) {
+          const snapshot = await getDocs(collection(db, c));
+          const batch = writeBatch(db);
+          let count = 0;
+          snapshot.forEach(d => {
+            if (!d.data().userId) {
+              batch.update(doc(db, c, d.id), { userId: currentUser.uid });
+              count++;
+            }
+          });
+          if (count > 0) {
+            await batch.commit();
+            console.log(`Migrated ${count} docs in ${c}`);
+          }
+        }
+        localStorage.setItem('migrated_data_v2', 'true');
+        window.location.reload();
+      } catch (err) {
+        console.error('Migration failed:', err);
+      }
+    };
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoadingAuth(false);
+      if (currentUser) {
+        doMigrate(currentUser);
+      }
     });
 
     return () => unsubscribe();
