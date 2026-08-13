@@ -96,13 +96,13 @@ Watch the end of the video. Return "win", "loss", or "tie".
 - Opponent forfeits/disconnects = win. I forfeit = loss.
 - Video cuts off early = infer from final board state, default to "loss".
 
-## Task 4 — Turn-by-Turn Analysis
+## Task 4 — Turn Timestamps
 For every turn (0 through the last turn of the battle):
 - **timestamp**: MANDATORY integer representing starting time in seconds from video start (e.g. 0 for Turn 0, 45 for 0:45, 125 for 2:05).
-- **events**: factual summary of what happened (moves used, damage, KOs, switches).
-- **notes**: analysis of the decisions made (good plays, mistakes, alternatives).
-- **knowns**: what this turn revealed about the opponent's sets, items, or abilities.
-- **assumptions**: informed guesses about the opponent's remaining unknowns.
+- **events**: ALWAYS leave as empty string "". Do NOT generate any summary or events text.
+- **notes**: ALWAYS leave as empty string "". Do NOT generate any analysis or notes text.
+- **knowns**: ALWAYS leave as empty string "". Do NOT generate any knowns text.
+- **assumptions**: ALWAYS leave as empty string "". Do NOT generate any assumptions text.
 
 ## Output Format
 Respond with ONLY JSON matching the requested schema.`;
@@ -226,10 +226,10 @@ Respond with ONLY JSON matching the requested schema.`;
             const insertBatch = db.batch();
             for (const t of turns) {
                 const payload = JSON.stringify({
-                    events: t.events || '',
-                    notes: t.notes || '',
-                    knowns: t.knowns || '',
-                    assumptions: t.assumptions || ''
+                    events: '',
+                    notes: '',
+                    knowns: '',
+                    assumptions: ''
                 });
                 const turnNum = typeof t.turn_number === 'number' ? t.turn_number : parseInt(t.turn_number) || 0;
                 const tab = turnNum === 0 ? 'select' : 'battle';
