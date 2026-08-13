@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ProcessingJob {
@@ -16,33 +17,47 @@ export function GlobalProgress() {
   const [minimized, setMinimized] = useState(false);
 
   useEffect(() => {
-    // Listen to all jobs in the last 24 hours to show recently completed/failed as well, 
-    // or just listen to active processing. For simplicity, we just listen to everything 
-    // and filter in memory, or just listen to 'processing' and recently completed.
-    // Let's just grab the 5 most recent jobs to keep the widget relevant.
-    
-    // We will listen to all 'processing' jobs
-    if (!auth.currentUser) return;
-    const q = query(
-      collection(db, 'processing_jobs'),
-      where('status', '==', 'processing'),
-      where('userId', '==', auth.currentUser.uid)
-    );
+    let unsubscribeSnapshot: (() => void) | null = null;
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const activeJobs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as ProcessingJob));
-      setJobs(activeJobs);
-      
-      // Auto-maximize if there are new active jobs
-      if (activeJobs.length > 0) {
-        setMinimized(false);
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
       }
+
+      if (!currentUser) {
+        setJobs([]);
+        return;
+      }
+
+      const q = query(
+        collection(db, 'processing_jobs'),
+        where('status', '==', 'processing'),
+        where('userId', '==', currentUser.uid)
+      );
+
+      unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
+        const activeJobs = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as ProcessingJob));
+        
+        setJobs(activeJobs);
+        
+        if (activeJobs.length > 0) {
+          setMinimized(false);
+        }
+      }, (error) => {
+        console.error("GlobalProgress snapshot error:", error);
+      });
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+    };
   }, []);
 
   if (jobs.length === 0) return null;

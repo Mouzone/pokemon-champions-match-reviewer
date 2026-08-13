@@ -9,6 +9,35 @@ const firestore_1 = require("firebase-admin/firestore");
 const storage_2 = require("firebase-admin/storage");
 const genai_1 = require("@google/genai");
 (0, app_1.initializeApp)();
+function parseTimestampToSeconds(val) {
+    if (val === null || val === undefined)
+        return null;
+    if (typeof val === 'number') {
+        return isNaN(val) ? null : Math.max(0, Math.floor(val));
+    }
+    if (typeof val === 'string') {
+        const cleaned = val.trim().replace(/s$/i, '');
+        if (cleaned.includes(':')) {
+            const parts = cleaned.split(':');
+            if (parts.length === 2) {
+                const mins = parseFloat(parts[0]);
+                const secs = parseFloat(parts[1]);
+                if (!isNaN(mins) && !isNaN(secs))
+                    return Math.max(0, Math.floor(mins * 60 + secs));
+            }
+            else if (parts.length === 3) {
+                const hrs = parseFloat(parts[0]);
+                const mins = parseFloat(parts[1]);
+                const secs = parseFloat(parts[2]);
+                if (!isNaN(hrs) && !isNaN(mins) && !isNaN(secs))
+                    return Math.max(0, Math.floor(hrs * 3600 + mins * 60 + secs));
+            }
+        }
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? null : Math.max(0, Math.floor(num));
+    }
+    return null;
+}
 async function runVideoReview(fileBucket, filePath, contentType, jobId, userId) {
     const db = (0, firestore_1.getFirestore)();
     const jobRef = db.collection('processing_jobs').doc(jobId);
@@ -69,32 +98,14 @@ Watch the end of the video. Return "win", "loss", or "tie".
 
 ## Task 4 — Turn-by-Turn Analysis
 For every turn (0 through the last turn of the battle):
-- **timestamp**: seconds from the start of the video when this turn begins.
+- **timestamp**: MANDATORY integer representing starting time in seconds from video start (e.g. 0 for Turn 0, 45 for 0:45, 125 for 2:05).
 - **events**: factual summary of what happened (moves used, damage, KOs, switches).
 - **notes**: analysis of the decisions made (good plays, mistakes, alternatives).
 - **knowns**: what this turn revealed about the opponent's sets, items, or abilities.
 - **assumptions**: informed guesses about the opponent's remaining unknowns.
 
-## Output
-Respond with ONLY valid JSON — no markdown, no explanation:
-{
-  "opponent_pokemon": [
-    { "name": "string (lowercase, hyphenated)", "id": "string (same as name)" }
-  ],
-  "own_team_id": "string (exact UUID from My Saved Teams, or null)",
-  "own_team_name": "string (team name, or Unknown)",
-  "result": "win" | "loss" | "tie",
-  "turns": [
-    {
-      "turn_number": 0,
-      "timestamp": 0,
-      "events": "string",
-      "notes": "string",
-      "knowns": "string",
-      "assumptions": "string"
-    }
-  ]
-}`;
+## Output Format
+Respond with ONLY JSON matching the requested schema.`;
         const request = {
             model: 'gemini-2.5-flash',
             contents: [{
@@ -110,7 +121,42 @@ Respond with ONLY valid JSON — no markdown, no explanation:
                     ]
                 }],
             config: {
-                responseMimeType: "application/json"
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        opponent_pokemon: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    name: { type: "STRING" },
+                                    id: { type: "STRING" }
+                                },
+                                required: ["name", "id"]
+                            }
+                        },
+                        own_team_id: { type: "STRING", nullable: true },
+                        own_team_name: { type: "STRING" },
+                        result: { type: "STRING", enum: ["win", "loss", "tie"] },
+                        turns: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    turn_number: { type: "INTEGER" },
+                                    timestamp: { type: "NUMBER" },
+                                    events: { type: "STRING" },
+                                    notes: { type: "STRING" },
+                                    knowns: { type: "STRING" },
+                                    assumptions: { type: "STRING" }
+                                },
+                                required: ["turn_number", "timestamp", "events", "notes", "knowns", "assumptions"]
+                            }
+                        }
+                    },
+                    required: ["opponent_pokemon", "result", "turns"]
+                }
             }
         };
         const analyzeRes = await ai.models.generateContent(request);
@@ -185,13 +231,18 @@ Respond with ONLY valid JSON — no markdown, no explanation:
                     knowns: t.knowns || '',
                     assumptions: t.assumptions || ''
                 });
-                const tab = t.turn_number === 0 ? 'select' : 'battle';
+                const turnNum = typeof t.turn_number === 'number' ? t.turn_number : parseInt(t.turn_number) || 0;
+                const tab = turnNum === 0 ? 'select' : 'battle';
+                let parsedTs = parseTimestampToSeconds(t.timestamp);
+                if (turnNum === 0 && parsedTs === null) {
+                    parsedTs = 0;
+                }
                 const docRef = notesRef.doc();
                 insertBatch.set(docRef, {
                     match_id: matchId,
                     tab: tab,
-                    turn_number: t.turn_number,
-                    timestamp: typeof t.timestamp === 'number' ? t.timestamp : null,
+                    turn_number: turnNum,
+                    timestamp: parsedTs,
                     actual_note: payload,
                     correct_note: '',
                     userId: userId
