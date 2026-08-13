@@ -56,9 +56,9 @@ export function FloatingActionMenu() {
           <button 
             className="fab-item"
             onClick={() => handleAction(() => setIsShortcutModalOpen(true))}
-            title="Automated Upload Setup"
+            title="Mobile Upload Setup"
           >
-            <Smartphone size={18} /> iOS Shortcut Setup
+            <Smartphone size={18} /> Mobile Upload Setup
           </button>
           
           <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '0.25rem 0' }}></div>

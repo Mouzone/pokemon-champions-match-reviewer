@@ -44,39 +44,62 @@ async function runVideoReview(fileBucket: string, filePath: string, contentType:
       location: LOCATION 
     });
 
-    const prompt = `You are an expert Pokemon VGC analyst reviewing a Pokemon Scarlet/Violet screen recording. Today's date is ${new Date().toISOString().split('T')[0]}.
+    const prompt = `You are an expert Pokemon VGC (Scarlet/Violet) analyst. Today: ${new Date().toISOString().split('T')[0]}.
 
-CRITICAL INSTRUCTIONS:
-- Ensure all identified Pokemon are legal and available in the most recent VGC regulation as of today's date.
-- VERY IMPORTANT: Before finalizing your list, verify that every Pokemon you identified is legally permitted in the CURRENT active VGC regulation for this date. Absolutely DO NOT include Mythical Pokemon or banned legendaries unless they are explicitly legal right now. If you see an illegal Pokemon, you have likely misidentified it; look closer and correct your identification.
-- Pay close attention to alternate forms. Format names strictly in lowercase and hyphenated (e.g., "urshifu-rapid-strike", "urshifu-single-strike", "ogerpon-hearthflame", "ogerpon-wellspring", "landorus-therian", "tornadus-incarnate", "calyrex-shadow", "calyrex-ice", "ursaluna-bloodmoon", "flutter-mane", "raging-bolt").
+## Turn Definitions
+- **Turn 0** — The Pokemon selection phase (team preview + lead selection). Timestamp: 0s if the video starts here.
+- **Turn 1** — Begins the moment the Pokemon are sent out onto the field (before any abilities, weather, or terrain activate). Ends after the last move of that turn resolves, just before the next move selection screen appears.
+- **Turn 2+** — Each turn begins at the move selection screen ("Fight / Pokemon / Bag / Run") and ends after all moves for that turn resolve, just before the next move selection screen.
 
-Task 1: Identify My Team
-- Look at the Team Preview screen. There are 12 Pokemon shown (6 for me on one side, 6 for the opponent on the other).
-- Below is a list of my saved teams. Analyze all 12 Pokemon on the Team Preview screen and find which group of 6 perfectly matches (or most closely matches) one of my saved teams.
-- Save the ID of the matched team.
-- IMPORTANT: If multiple teams have the exact same Pokemon, ALWAYS select the FIRST matching team in the list (this ensures the most recently uploaded team is used).
+## Legality Rules
+- Only include Pokemon that are legal in the current active VGC regulation as of today's date.
+- No Mythicals or banned Legendaries unless explicitly legal right now.
+- If you think you see an illegal Pokemon, look closer — you have almost certainly misidentified it.
+- Use lowercase hyphenated names for all forms: e.g. urshifu-rapid-strike, ogerpon-hearthflame, landorus-therian, calyrex-shadow, flutter-mane, raging-bolt.
+
+## Task 1 — Identify My Team
+From Team Preview, find the group of 6 Pokemon that best matches one of my saved teams below.
+Return the exact UUID of the matched team. If multiple teams match equally, pick the first one in the list (most recently created).
 
 My Saved Teams:
-${teamListString}
+${teamListString || "(No teams saved yet)"}
 
-Task 2: Identify the Opponent's Team
-- The 6 Pokemon on Team Preview that DO NOT belong to my matched team are the opponent's Pokemon.
-- YOU MUST output ALL 6 of the opponent's Pokemon from the Team Preview screen. Do not just list the 3 or 4 that were brought into the battle.
-- ONLY if the video completely skips the Team Preview screen (meaning it starts directly in the middle of a battle), identify the 3 or 4 opponent Pokemon that appear during the battle. Otherwise, always return exactly 6.
+## Task 2 — Identify Opponent's Team
+The 6 Pokemon on Team Preview that are NOT on my team are the opponent's full team — return all 6.
+Exception: if the video skips Team Preview entirely and starts mid-battle, return only the Pokemon that visibly appeared (3–4).
 
-Task 3: Determine the Match Result
-- Watch the end of the video. Determine if I (the recording player) won, lost, or tied. 
-- Edge cases: If the opponent forfeits/disconnects, it's a win. If I forfeit, it's a loss. If the video cuts off early before the match ends, deduce the likely winner based on the final board state (Pokemon remaining, HP), or default to "loss".
+## Task 3 — Match Result
+Watch the end of the video. Return "win", "loss", or "tie".
+- Opponent forfeits/disconnects = win. I forfeit = loss.
+- Video cuts off early = infer from final board state, default to "loss".
 
-Output MUST be valid JSON matching this exact schema:
+## Task 4 — Turn-by-Turn Analysis
+For every turn (0 through the last turn of the battle):
+- **timestamp**: seconds from the start of the video when this turn begins.
+- **events**: factual summary of what happened (moves used, damage, KOs, switches).
+- **notes**: analysis of the decisions made (good plays, mistakes, alternatives).
+- **knowns**: what this turn revealed about the opponent's sets, items, or abilities.
+- **assumptions**: informed guesses about the opponent's remaining unknowns.
+
+## Output
+Respond with ONLY valid JSON — no markdown, no explanation:
 {
   "opponent_pokemon": [
     { "name": "string (lowercase, hyphenated)", "id": "string (same as name)" }
   ],
-  "own_team_id": "string (the exact UUID of my team that matched from the provided list, or null if absolutely no match)",
-  "own_team_name": "string (the name of my team that matched, or Unknown)",
-  "result": "string (must be exactly 'win', 'loss', or 'tie')"
+  "own_team_id": "string (exact UUID from My Saved Teams, or null)",
+  "own_team_name": "string (team name, or Unknown)",
+  "result": "win" | "loss" | "tie",
+  "turns": [
+    {
+      "turn_number": 0,
+      "timestamp": 0,
+      "events": "string",
+      "notes": "string",
+      "knowns": "string",
+      "assumptions": "string"
+    }
+  ]
 }`;
 
     const request = {
@@ -101,15 +124,19 @@ Output MUST be valid JSON matching this exact schema:
     const analyzeRes = await ai.models.generateContent(request);
     console.log(`Raw Vertex AI Response for job ${jobId}:`, JSON.stringify(analyzeRes));
     
+    let turns: any[] = [];
     if (analyzeRes.candidates && analyzeRes.candidates.length > 0) {
       const rawText = analyzeRes.text;
       if (rawText) {
         try {
-          const parsed = JSON.parse(rawText.trim());
+          const parsed = JSON.parse(rawText.trim().replace(/^```json\s*/, '').replace(/\s*```$/, ''));
           if (parsed.opponent_pokemon) opponentPokemon = parsed.opponent_pokemon;
           if (parsed.own_team_id) detectedTeamId = parsed.own_team_id;
           if (parsed.result && ['win', 'loss', 'tie'].includes(parsed.result.toLowerCase())) {
             detectedResult = parsed.result.toLowerCase();
+          }
+          if (parsed.turns && Array.isArray(parsed.turns)) {
+            turns = parsed.turns;
           }
         } catch(e) {
           console.error(`Failed to parse Vertex AI JSON for job ${jobId}:`, rawText);
@@ -124,8 +151,9 @@ Output MUST be valid JSON matching this exact schema:
     // Check if match already exists for this video to avoid duplicates during manual runs
     const existingMatches = await db.collection('matches').where('video_url', '==', `gs://${fileBucket}/${filePath}`).where('userId', '==', userId).get();
     
+    let matchId = "";
     if (existingMatches.empty) {
-      await db.collection('matches').add({
+      const newMatch = await db.collection('matches').add({
         played_at: new Date().toISOString(),
         opponent_team: opponentPokemon,
         own_team_id: detectedTeamId,
@@ -134,17 +162,54 @@ Output MUST be valid JSON matching this exact schema:
         userId: userId,
         created_at: FieldValue.serverTimestamp()
       });
+      matchId = newMatch.id;
       console.log(`Match processed and saved successfully for job ${jobId}.`);
     } else {
       // Update existing
-      const docId = existingMatches.docs[0].id;
-      await db.collection('matches').doc(docId).update({
+      matchId = existingMatches.docs[0].id;
+      await db.collection('matches').doc(matchId).update({
         opponent_team: opponentPokemon,
         own_team_id: detectedTeamId,
         result: detectedResult,
         updated_at: FieldValue.serverTimestamp()
       });
       console.log(`Match updated successfully for job ${jobId}.`);
+    }
+
+    // Save generated turns to match_notes
+    if (turns.length > 0) {
+      const notesRef = db.collection('match_notes');
+      
+      // Delete existing notes for this match so we don't duplicate on re-run
+      const existingNotesSnap = await notesRef.where('match_id', '==', matchId).where('userId', '==', userId).get();
+      if (!existingNotesSnap.empty) {
+        const batch = db.batch();
+        existingNotesSnap.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+      }
+
+      const insertBatch = db.batch();
+      for (const t of turns) {
+        const payload = JSON.stringify({
+          events: t.events || '',
+          notes: t.notes || '',
+          knowns: t.knowns || '',
+          assumptions: t.assumptions || ''
+        });
+        const tab = t.turn_number === 0 ? 'select' : 'battle';
+        const docRef = notesRef.doc();
+        insertBatch.set(docRef, {
+          match_id: matchId,
+          tab: tab,
+          turn_number: t.turn_number,
+          timestamp: typeof t.timestamp === 'number' ? t.timestamp : null,
+          actual_note: payload,
+          correct_note: '',
+          userId: userId
+        });
+      }
+      await insertBatch.commit();
+      console.log(`Saved ${turns.length} turns to match_notes for match ${matchId}.`);
     }
 
     await jobRef.update({

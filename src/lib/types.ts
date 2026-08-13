@@ -31,4 +31,5 @@ export interface MatchNote {
   turn_number?: number;
   actual_note?: string;
   correct_note?: string;
+  timestamp?: number | null;
 }

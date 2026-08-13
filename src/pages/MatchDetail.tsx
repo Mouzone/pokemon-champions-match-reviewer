@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import ReactPlayer from 'react-player';
 import { db, auth } from '../lib/firebase';
 import { collection, query, getDocs, doc, updateDoc, addDoc, where } from 'firebase/firestore';
@@ -16,7 +16,7 @@ interface MatchDetailProps {
   onMatchUpdate?: (updated: (Match & { teams: Team }) | null) => void;
 }
 
-type TurnData = { events: string; notes: string; knowns: string; assumptions: string; id?: string };
+type TurnData = { events: string; notes: string; knowns: string; assumptions: string; id?: string; timestamp?: number | null };
 
 export default function MatchDetail({ match, allTeams, notesCache, updateNotesCache, onMatchUpdate }: MatchDetailProps) {
   const [activeTab, setActiveTab] = useState<'reference' | 'notes' | 'improvements'>('reference');
@@ -27,11 +27,23 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
   const [improvementsNote, setImprovementsNote] = useState('');
   const [currentTurn, setCurrentTurn] = useState(0); // 0 = Turn 0, 1+ = Battle Turn
   
+  // ReactPlayer renders the video; we grab the real <video> DOM element for event hooks
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+  const internalVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Refs so callbacks always read the latest value without stale closures
+  const isSeekingRef = useRef(false);
+  const seekTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCalculatedTurnRef = useRef<number>(-1);
+  const [timestampInput, setTimestampInput] = useState('');
+  
   const [loaded, setLoaded] = useState(false);
   const saveTurnTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveImpTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const [turnNotes, setTurnNotes] = useState<{ [turn: number]: TurnData }>({});
+  // Mirror turnNotes in a ref so event callbacks always see the latest data
+  const turnNotesRef = useRef<{ [turn: number]: TurnData }>({});
   const [, setSaving] = useState(false);
 
   const [leftBox, setLeftBox] = useState<keyof TurnData>('events');
@@ -66,6 +78,7 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
     if (notesCache[match.id]) {
       const cached = notesCache[match.id];
       setTurnNotes(cached.turnNotes);
+      turnNotesRef.current = cached.turnNotes;
       setImprovementsNote(cached.improvementsNote);
       setLoaded(true);
       return;
@@ -87,7 +100,14 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
         } else if (n.tab === 'select' || n.tab === 'battle') {
           const turnNum = n.tab === 'select' ? 0 : n.turn_number;
           if (turnNum !== null && turnNum !== undefined) {
-            let parsedData: TurnData = { events: '', notes: '', knowns: '', assumptions: '', id: n.id };
+            let parsedData: TurnData = { 
+              events: '', 
+              notes: '', 
+              knowns: '', 
+              assumptions: '', 
+              id: n.id, 
+              timestamp: n.timestamp !== undefined ? n.timestamp : (turnNum === 0 ? 0 : null) 
+            };
             try {
               if (n.actual_note?.startsWith('{')) {
                 const p = JSON.parse(n.actual_note);
@@ -108,6 +128,7 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
         }
       });
       setTurnNotes(tNotes);
+      turnNotesRef.current = tNotes;
       updateNotesCache(match.id, { turnNotes: tNotes, improvementsNote: impNote });
     } catch (e) {
       console.error(e);
@@ -122,8 +143,53 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
     }
   }, [turnNotes, improvementsNote, loaded, match.id, updateNotesCache]);
 
+
+  const syncTurnToTime = useCallback((timeSeconds: number) => {
+    const notes = turnNotesRef.current;
+    const sortedTurns = Object.keys(notes)
+      .map(Number)
+      .filter(t => notes[t]?.timestamp !== null && notes[t]?.timestamp !== undefined)
+      .sort((a, b) => notes[a].timestamp! - notes[b].timestamp!);
+
+    if (sortedTurns.length === 0) return;
+
+    let calculatedTurn = sortedTurns[0];
+    for (const t of sortedTurns) {
+      if (timeSeconds >= notes[t].timestamp!) {
+        calculatedTurn = t;
+      }
+    }
+
+    if (calculatedTurn !== lastCalculatedTurnRef.current) {
+      lastCalculatedTurnRef.current = calculatedTurn;
+      setCurrentTurn(calculatedTurn);
+    }
+  }, []);
+
+  const doSeek = (time: number) => {
+    isSeekingRef.current = true;
+    const vid = internalVideoRef.current;
+    if (vid) {
+      vid.currentTime = time;
+    }
+    // Immediately sync notes to the seek target — don't wait for timeupdate
+    syncTurnToTime(time);
+    if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
+    seekTimeoutRef.current = setTimeout(() => {
+      isSeekingRef.current = false;
+    }, 1500);
+  };
+
   const handleTurnChange = (newTurn: number) => {
     setCurrentTurn(newTurn);
+    lastCalculatedTurnRef.current = newTurn;
+
+    // Auto-seek video if timestamp exists
+    const notes = turnNotesRef.current;
+    if (notes[newTurn] && notes[newTurn].timestamp !== null && notes[newTurn].timestamp !== undefined) {
+      doSeek(notes[newTurn].timestamp!);
+    }
+
     setTurnNotes(prev => {
       if (!prev[newTurn]) {
         let latestTurn = newTurn - 1;
@@ -138,7 +204,7 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
         }
         return {
           ...prev,
-          [newTurn]: { events: '', notes: '', knowns: initialKnowns, assumptions: initialAssumptions }
+          [newTurn]: { events: '', notes: '', knowns: initialKnowns, assumptions: initialAssumptions, timestamp: newTurn === 0 ? 0 : null }
         };
       }
       return prev;
@@ -155,9 +221,9 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
     });
     
     if (turn === 0) {
-      await upsertNote('select', undefined, payload, '');
+      await upsertNote('select', undefined, payload, '', data.timestamp);
     } else {
-      await upsertNote('battle', turn, payload, '');
+      await upsertNote('battle', turn, payload, '', data.timestamp);
     }
     
     setSaving(false);
@@ -167,6 +233,7 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
     setTurnNotes(prev => {
       const next = { ...prev };
       next[currentTurn] = { ...(next[currentTurn] || { events: '', notes: '', knowns: '', assumptions: '' }), [box]: val };
+      turnNotesRef.current = next;
       
       if (saveTurnTimeoutRef.current) clearTimeout(saveTurnTimeoutRef.current);
       
@@ -192,7 +259,7 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
     }, 1500);
   };
 
-  const upsertNote = async (tab: string, turn?: number, actual?: string, correct?: string) => {
+  const upsertNote = async (tab: string, turn?: number, actual?: string, correct?: string, timestamp?: number | null) => {
     try {
       if (!auth.currentUser) return;
       let q = query(collection(db, 'match_notes'), where('userId', '==', auth.currentUser.uid), where('match_id', '==', match.id), where('tab', '==', tab));
@@ -204,9 +271,9 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
       const existing = snap.docs.length > 0 ? snap.docs[0] : null;
 
       if (existing) {
-        await updateDoc(doc(db, 'match_notes', existing.id), { actual_note: actual, correct_note: correct });
+        await updateDoc(doc(db, 'match_notes', existing.id), { actual_note: actual, correct_note: correct, timestamp: timestamp !== undefined ? timestamp : null });
       } else {
-        await addDoc(collection(db, 'match_notes'), { match_id: match.id, tab, turn_number: turn || null, actual_note: actual, correct_note: correct, userId: auth.currentUser.uid });
+        await addDoc(collection(db, 'match_notes'), { match_id: match.id, tab, turn_number: turn || null, actual_note: actual, correct_note: correct, timestamp: timestamp !== undefined ? timestamp : null, userId: auth.currentUser.uid });
       }
     } catch (e) {
       console.error(e);
@@ -215,21 +282,126 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
 
   const currentTurnData = turnNotes[currentTurn] || { events: '', notes: '', knowns: '', assumptions: '' };
 
+  useEffect(() => {
+    if (currentTurnData.timestamp !== undefined && currentTurnData.timestamp !== null) {
+      setTimestampInput(`${Math.floor(currentTurnData.timestamp / 60)}:${String(Math.floor(currentTurnData.timestamp % 60)).padStart(2, '0')}`);
+    } else {
+      setTimestampInput('');
+    }
+  }, [currentTurn, currentTurnData.timestamp]);
+
+  const handleTimestampBlur = () => {
+    let newTs: number | null = null;
+    if (timestampInput) {
+      const parts = timestampInput.split(':');
+      if (parts.length === 2) {
+        newTs = (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
+      } else {
+        newTs = parseInt(parts[0]) || 0;
+      }
+    }
+    
+    if (newTs !== currentTurnData.timestamp) {
+      setTurnNotes(prev => {
+        const next = { ...prev };
+        next[currentTurn] = { ...(next[currentTurn] || { events: '', notes: '', knowns: '', assumptions: '' }), timestamp: newTs };
+        turnNotesRef.current = next;
+        
+        if (saveTurnTimeoutRef.current) clearTimeout(saveTurnTimeoutRef.current);
+        const turnToSave = currentTurn;
+        const dataToSave = next[currentTurn];
+        // Save immediately for timestamps so quick refreshes don't lose the manual entry
+        saveTurnNoteToDb(turnToSave, dataToSave);
+        
+        return next;
+      });
+      
+      if (newTs !== null) {
+        doSeek(newTs);
+      }
+    }
+  };
+
+  // After ReactPlayer mounts, find the inner <video> element and wire up native events.
+  // We poll briefly because ReactPlayer renders async (especially for YouTube iframes).
+  const attachVideoListeners = useCallback(() => {
+    const container = playerContainerRef.current;
+    if (!container) return;
+
+    const vid = container.querySelector('video');
+    if (!vid) return;
+
+    if (internalVideoRef.current === vid) return; // already attached
+    internalVideoRef.current = vid;
+
+    const onTimeUpdate = () => {
+      if (!isSeekingRef.current) syncTurnToTime(vid.currentTime);
+    };
+    const onSeeked = () => {
+      isSeekingRef.current = false;
+      if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
+      syncTurnToTime(vid.currentTime);
+    };
+    const onPlay = () => { isSeekingRef.current = false; };
+
+    vid.addEventListener('timeupdate', onTimeUpdate);
+    vid.addEventListener('seeked', onSeeked);
+    vid.addEventListener('play', onPlay);
+
+    return () => {
+      vid.removeEventListener('timeupdate', onTimeUpdate);
+      vid.removeEventListener('seeked', onSeeked);
+      vid.removeEventListener('play', onPlay);
+      internalVideoRef.current = null;
+    };
+  }, [syncTurnToTime]);
+
+  useEffect(() => {
+    if (!videoSrc) return;
+    // Poll until the <video> element appears inside the ReactPlayer container
+    let cleanup: (() => void) | undefined;
+    let attempts = 0;
+    const interval = setInterval(() => {
+      cleanup = attachVideoListeners();
+      attempts++;
+      if (cleanup || attempts > 20) clearInterval(interval);
+    }, 200);
+    return () => {
+      clearInterval(interval);
+      cleanup?.();
+    };
+  }, [videoSrc, attachVideoListeners]);
+
+
   return (
     <div className="match-detail-container">
       
-      {/* Left side: Video Player */}
-      <div className="match-detail-video" style={{ flex: 1.5, minWidth: 0, minHeight: 300, display: 'flex', backgroundColor: '#000', borderRadius: 'var(--radius-lg)', overflow: 'hidden', position: 'relative' }}>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      {/* Left side: Video Player + Chapter Bar */}
+      <div style={{ flex: 1.5, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <div
+          className="match-detail-video"
+          style={{
+            width: '100%',
+            height: '300px',
+            backgroundColor: '#000',
+            borderRadius: 'var(--radius-lg)',
+            overflow: 'hidden',
+            position: 'relative',
+            flexShrink: 0,
+          }}
+        >
           {videoSrc ? (
-            <ReactPlayer 
-              src={videoSrc} 
-              controls 
-              width="100%" 
-              height="100%"
-              style={{ position: 'absolute', top: 0, left: 0 }}
-              light={true} // Shows a play button thumbnail to delay loading heavy iframe
-            />
+            <div
+              ref={playerContainerRef}
+              style={{ position: 'absolute', inset: 0 }}
+            >
+              <ReactPlayer
+                src={videoSrc}
+                controls
+                width="100%"
+                height="100%"
+              />
+            </div>
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
               No video available
@@ -239,7 +411,7 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
       </div>
 
       {/* Right side: Annotation Tabs */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, paddingRight: '0.5rem' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, paddingRight: '0.5rem', marginTop: '0.5rem' }}>
         <div className="tabs-header" style={{ marginBottom: '0.5rem', borderBottom: '2px solid var(--border-color)', display: 'flex' }}>
           <button className={`tab-btn ${activeTab === 'reference' ? 'active' : ''}`} onClick={() => setActiveTab('reference')}>Details</button>
           <button className={`tab-btn ${activeTab === 'notes' ? 'active' : ''}`} onClick={() => setActiveTab('notes')}>Notes</button>
@@ -263,6 +435,56 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
                   <option key={i+1} value={i+1}>{i+1}</option>
                 ))}
               </select>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Start</span>
+                <input 
+                  type="text" 
+                  placeholder="MM:SS"
+                  className="input-field"
+                  style={{ width: '60px', padding: '0.25rem 0.4rem', fontSize: '0.8rem', textAlign: 'center' }}
+                  value={timestampInput}
+                  onChange={(e) => setTimestampInput(e.target.value)}
+                  onBlur={handleTimestampBlur}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleTimestampBlur();
+                      e.currentTarget.blur();
+                    }
+                  }}
+                />
+                <button
+                  title="Set to current video time"
+                  onClick={() => {
+                    const currentTime = internalVideoRef.current?.currentTime || 0;
+                    setTurnNotes(prev => {
+                      const next = { ...prev };
+                      next[currentTurn] = { ...(next[currentTurn] || { events: '', notes: '', knowns: '', assumptions: '' }), timestamp: currentTime };
+                      
+                      if (saveTurnTimeoutRef.current) clearTimeout(saveTurnTimeoutRef.current);
+                      saveTurnNoteToDb(currentTurn, next[currentTurn]);
+                      return next;
+                    });
+                    setTimestampInput(`${Math.floor(currentTime / 60)}:${String(Math.floor(currentTime % 60)).padStart(2, '0')}`);
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm)',
+                    cursor: 'pointer',
+                    padding: '0.2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="notes-editor-container" style={{ display: 'flex', gap: '0.75rem', flex: 1, minHeight: 0 }}>
@@ -297,7 +519,7 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <MarkdownEditor 
-                    value={currentTurnData[leftBox] || ''} 
+                    value={String(currentTurnData[leftBox] || '')} 
                     onChange={val => handleTurnNoteChange(leftBox, val)} 
                     placeholder={`Write your ${leftBox} here...`}
                   />
@@ -333,7 +555,7 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <MarkdownEditor 
-                    value={currentTurnData[rightBox] || ''} 
+                    value={String(currentTurnData[rightBox] || '')} 
                     onChange={val => handleTurnNoteChange(rightBox, val)} 
                     placeholder={`Write your ${rightBox} here...`}
                   />
