@@ -9,6 +9,23 @@ export interface ParsedPokemon {
   moves: string[];
 }
 
+type StatBlock = { hp: number; atk: number; def: number; spa: number; spd: number; spe: number };
+
+const STAT_KEYS: (keyof StatBlock)[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+
+/** Parses a single "252 Spe" style EV/IV segment and writes it into the target block. */
+function applyStatValue(segment: string, target: StatBlock): void {
+  // Split on whitespace (handles multiple spaces / tabs), e.g. "252  HP".
+  const tokens = segment.trim().split(/\s+/);
+  if (tokens.length < 2) return;
+  const val = parseInt(tokens[0]);
+  if (Number.isNaN(val)) return;
+  const stat = tokens[1].toLowerCase();
+  if (STAT_KEYS.includes(stat as keyof StatBlock)) {
+    target[stat as keyof StatBlock] = val;
+  }
+}
+
 export function parsePokepaste(paste: string | null | undefined): ParsedPokemon[] {
   if (!paste) return [];
   const blocks = paste.trim().split(/\n\s*\n/);
@@ -47,29 +64,13 @@ export function parsePokepaste(paste: string | null | undefined): ParsedPokemon[
       else if (line.startsWith('Tera Type:')) result.teraType = line.replace('Tera Type:', '').trim();
       else if (line.startsWith('EVs:')) {
         const evParts = line.replace('EVs:', '').split('/');
-        evParts.forEach(part => {
-          const [val, stat] = part.trim().split(' ');
-          if (stat.toLowerCase() === 'hp') result.evs.hp = parseInt(val) || 0;
-          if (stat.toLowerCase() === 'atk') result.evs.atk = parseInt(val) || 0;
-          if (stat.toLowerCase() === 'def') result.evs.def = parseInt(val) || 0;
-          if (stat.toLowerCase() === 'spa') result.evs.spa = parseInt(val) || 0;
-          if (stat.toLowerCase() === 'spd') result.evs.spd = parseInt(val) || 0;
-          if (stat.toLowerCase() === 'spe') result.evs.spe = parseInt(val) || 0;
-        });
+        evParts.forEach(part => applyStatValue(part, result.evs));
       }
       else if (line.startsWith('IVs:')) {
         const ivParts = line.replace('IVs:', '').split('/');
-        ivParts.forEach(part => {
-          const [val, stat] = part.trim().split(' ');
-          if (stat.toLowerCase() === 'hp') result.ivs.hp = parseInt(val) || 0;
-          if (stat.toLowerCase() === 'atk') result.ivs.atk = parseInt(val) || 0;
-          if (stat.toLowerCase() === 'def') result.ivs.def = parseInt(val) || 0;
-          if (stat.toLowerCase() === 'spa') result.ivs.spa = parseInt(val) || 0;
-          if (stat.toLowerCase() === 'spd') result.ivs.spd = parseInt(val) || 0;
-          if (stat.toLowerCase() === 'spe') result.ivs.spe = parseInt(val) || 0;
-        });
+        ivParts.forEach(part => applyStatValue(part, result.ivs));
       }
-      else if (line.includes('Nature')) result.nature = line.replace('Nature', '').trim();
+      else if (line.endsWith('Nature')) result.nature = line.replace('Nature', '').trim();
       else if (line.startsWith('-')) result.moves.push(line.replace('-', '').trim());
     }
 

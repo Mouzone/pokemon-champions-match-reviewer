@@ -20,15 +20,6 @@
   cursor: not-allowed;
 }
 
-.btn-primary {
-  background-color: var(--text-primary);
-  color: var(--bg-base);
-}
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--bg-base);
-  color: var(--text-primary);
-}
-
 .btn-secondary {
   background-color: transparent;
   color: var(--text-primary);
@@ -60,23 +51,6 @@
   color: var(--text-primary);
 }
 
-.input-field {
-  background-color: var(--bg-surface-hover);
-  border: none;
-  border-bottom: 2px solid var(--text-primary);
-  color: var(--text-primary);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.95rem;
-  width: 100%;
-  max-width: 100%;
-  font-family: inherit;
-}
-
-.input-field:focus {
-  outline: none;
-  background-color: #e8e8e8;
-}
-
 /* Card Styles - Minimal, no borders, no shadow */
 .card {
   background-color: var(--bg-base);
@@ -97,29 +71,6 @@
   gap: 0;
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 1rem;
-}
-
-.tab-btn {
-  flex: 1;
-  text-align: center;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  padding: 0.5rem 0.25rem;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-}
-
-.tab-btn:hover {
-  color: var(--text-primary);
-}
-
-.tab-btn.active {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
 }
 
 /* Markdown Preview */

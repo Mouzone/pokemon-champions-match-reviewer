@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import ReactPlayer from 'react-player';
-import { db, auth } from '../lib/firebase';
+import { db, auth, storage } from '../lib/firebase';
 import { collection, query, getDocs, doc, updateDoc, addDoc, where } from 'firebase/firestore';
+import { getDownloadURL, ref as storageRef } from 'firebase/storage';
 import type { Match, Team } from '../lib/types';
 
 import { MarkdownEditor } from '../components/MarkdownEditor';
@@ -17,6 +18,15 @@ interface MatchDetailProps {
 }
 
 type TurnData = { events: string; notes: string; knowns: string; assumptions: string; id?: string; timestamp?: number | null };
+
+interface RawNote {
+  id: string;
+  tab: 'select' | 'battle' | 'improvements';
+  turn_number?: number | null;
+  actual_note?: string;
+  correct_note?: string;
+  timestamp?: number | null;
+}
 
 export default function MatchDetail({ match, allTeams, notesCache, updateNotesCache, onMatchUpdate }: MatchDetailProps) {
   const [activeTab, setActiveTab] = useState<'reference' | 'notes' | 'improvements'>('reference');
@@ -65,10 +75,9 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
 
   useEffect(() => {
     if (match.video_url?.startsWith('gs://')) {
-      import('firebase/storage').then(({ getStorage, ref, getDownloadURL }) => {
-        const storage = getStorage();
-        getDownloadURL(ref(storage, match.video_url)).then(setVideoSrc).catch(console.error);
-      });
+      getDownloadURL(storageRef(storage, match.video_url))
+        .then(setVideoSrc)
+        .catch(console.error);
     } else {
       setVideoSrc(match.video_url || '');
     }
@@ -89,11 +98,11 @@ export default function MatchDetail({ match, allTeams, notesCache, updateNotesCa
       if (!auth.currentUser) return;
       const q = query(collection(db, 'match_notes'), where('userId', '==', auth.currentUser.uid), where('match_id', '==', match.id));
       const snap = await getDocs(q);
-      const notesData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      
-      const tNotes: any = {};
+      const notesData = snap.docs.map(d => ({ id: d.id, ...d.data() } as RawNote));
+
+      const tNotes: { [turn: number]: TurnData } = {};
       let impNote = '';
-      notesData.forEach((n: any) => {
+      notesData.forEach((n) => {
         if (n.tab === 'improvements') {
           impNote = n.actual_note || '';
           setImprovementsNote(impNote);

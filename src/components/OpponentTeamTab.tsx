@@ -55,10 +55,7 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
     const newTeam = [...team];
     newTeam[index] = pokemon;
     setTeam(newTeam);
-    if (onUpdate) onUpdate(newTeam.filter(Boolean) as any); // Or keep nulls if we want to save them. Let's keep nulls.
-    
-    // Actually, save with nulls so the anchor persists on reload.
-    // However, onUpdate might expect non-null in MatchDetail, but Home handles nulls now.
+    // Save with nulls so the anchor persists on reload.
     if (onUpdate) onUpdate(newTeam as any);
     await updateDoc(doc(db, 'matches', matchId), { opponent_team: newTeam });
   };

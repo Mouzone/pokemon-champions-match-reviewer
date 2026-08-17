@@ -11,6 +11,24 @@ interface PokemonSearchProps {
   onSelect: (pokemon: { name: string, id: string }) => void;
 }
 
+// Module-level cache: PokemonSearch is rendered up to 6× simultaneously (one
+// per empty opponent slot), so we fetch the full Pokemon list once and share
+// it across all instances rather than issuing 6 redundant requests.
+let pokemonListPromise: Promise<PokemonListResult[]> | null = null;
+function getPokemonList(): Promise<PokemonListResult[]> {
+  if (!pokemonListPromise) {
+    pokemonListPromise = fetch('https://pokeapi.co/api/v2/pokemon?limit=1500')
+      .then(res => res.json())
+      .then(data => data.results as PokemonListResult[])
+      .catch(err => {
+        console.error('Error fetching pokemon:', err);
+        pokemonListPromise = null; // allow retry on failure
+        return [];
+      });
+  }
+  return pokemonListPromise;
+}
+
 export function PokemonSearch({ onSelect }: PokemonSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PokemonListResult[]>([]);
@@ -19,19 +37,21 @@ export function PokemonSearch({ onSelect }: PokemonSearchProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Fetch all pokemon names once for client-side filtering
-    fetch('https://pokeapi.co/api/v2/pokemon?limit=1500')
-      .then(res => res.json())
-      .then(data => setAllPokemon(data.results))
-      .catch(err => console.error('Error fetching pokemon:', err));
-      
+    let active = true;
+    getPokemonList().then(list => {
+      if (active) setAllPokemon(list);
+    });
+
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      active = false;
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {

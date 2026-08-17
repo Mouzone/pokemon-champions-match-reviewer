@@ -1,9 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, getDocs, onSnapshot, limit, where } from 'firebase/firestore';
 import type { Match, Team } from '../lib/types';
-import MatchDetail from './MatchDetail';
 import { MatchRow } from '../components/MatchRow';
+
+// Lazy-load MatchDetail so react-player (+ dashjs/hls.js, ~1MB) is split out
+// of the initial bundle and only loaded when a match is expanded.
+const MatchDetail = lazy(() => import('./MatchDetail'));
 
 interface MatchDetailWrapperProps {
   match: Match & { teams: Team };
@@ -18,12 +21,10 @@ function MatchDetailWrapper({ match, expandedMatchId, allTeams, notesCache, upda
   const isExpanded = expandedMatchId === match.id;
   const [shouldRender, setRender] = useState(isExpanded);
 
-  if (isExpanded && !shouldRender) {
-    setRender(true);
-  }
-
   useEffect(() => {
-    if (!isExpanded) {
+    if (isExpanded) {
+      setRender(true);
+    } else {
       const t = setTimeout(() => setRender(false), 200);
       return () => clearTimeout(t);
     }
@@ -33,13 +34,15 @@ function MatchDetailWrapper({ match, expandedMatchId, allTeams, notesCache, upda
     <div className={`match-detail-wrapper ${isExpanded ? 'expanded' : ''}`}>
       <div className="match-detail-inner">
         {shouldRender && (
-          <MatchDetail 
-            match={match} 
-            allTeams={allTeams}
-            notesCache={notesCache}
-            updateNotesCache={updateNotesCache}
-            onMatchUpdate={onMatchUpdate} 
-          />
+          <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }} className="text-muted">Loading…</div>}>
+            <MatchDetail
+              match={match}
+              allTeams={allTeams}
+              notesCache={notesCache}
+              updateNotesCache={updateNotesCache}
+              onMatchUpdate={onMatchUpdate}
+            />
+          </Suspense>
         )}
       </div>
     </div>
@@ -55,9 +58,7 @@ export default function Home() {
   
   const [limitCount, setLimitCount] = useState(5);
   const [hasMore, setHasMore] = useState(true);
-  
-  const observerTarget = useRef(null);
-  
+
   // Cache for match notes to prevent refetching when expanding/retracting
   const notesCache = useRef<Record<string, any>>({});
 
@@ -65,25 +66,22 @@ export default function Home() {
     setExpandedMatchId(prev => prev === id ? null : id);
   };
 
-  useEffect(() => {
+  // Callback ref: binds the IntersectionObserver to the sentinel whenever it
+  // (re)mounts, instead of relying on a stale ref.current dependency.
+  const sentinelRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node || !hasMore) return;
     const observer = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting && hasMore) {
+        if (entries[0].isIntersecting) {
           setLimitCount(prev => prev + 5);
         }
       },
       { threshold: 0.1 }
     );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    const currentTarget = observerTarget.current;
-    return () => {
-      if (currentTarget) observer.unobserve(currentTarget);
-    };
-  }, [hasMore, observerTarget.current, loading]); // Need loading dependency to re-bind if element mounts late
+    observer.observe(node);
+    // Cleanup when the node unmounts or the callback re-runs.
+    return () => observer.disconnect();
+  }, [hasMore]);
 
   // Fetch teams once on mount
   useEffect(() => {
@@ -196,7 +194,7 @@ export default function Home() {
 
         {/* Infinite Scroll Sentinel */}
         {matches.length > 0 && hasMore && (
-          <div ref={observerTarget} style={{ padding: '1rem', textAlign: 'center' }}>
+          <div ref={sentinelRef} style={{ padding: '1rem', textAlign: 'center' }}>
             <span className="text-muted" style={{ fontSize: '0.85rem' }}>Loading more matches...</span>
           </div>
         )}
