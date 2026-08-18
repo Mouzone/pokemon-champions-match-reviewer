@@ -57,7 +57,7 @@ export function PokemonSearch({ onSelect }: PokemonSearchProps) {
   useEffect(() => {
     if (query.length > 1) {
       let searchQ = query.toLowerCase().replace(/ /g, '-').replace('phalanx', 'falinks');
-      const filtered = allPokemon.filter(p => p.name.toLowerCase().includes(searchQ)).slice(0, 5);
+      const filtered = allPokemon.filter(p => p.name.toLowerCase().includes(searchQ)).slice(0, 6);
       setResults(filtered);
       setShowDropdown(true);
     } else {
@@ -85,13 +85,14 @@ export function PokemonSearch({ onSelect }: PokemonSearchProps) {
           borderRadius: 'var(--radius-md)',
           marginTop: '0.25rem',
           zIndex: 50,
-          maxHeight: '200px',
-          overflowY: 'auto'
+          maxHeight: '168px',
+          overflowY: 'auto',
+          boxShadow: 'var(--shadow-md)'
         }}>
           {results.map((p) => (
             <div
               key={p.name}
-              style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', textTransform: 'capitalize' }}
+              style={{ padding: '0.375rem 0.625rem', cursor: 'pointer', textTransform: 'capitalize', fontSize: '0.8rem' }}
               onClick={() => {
                 const id = p.url.split('/').filter(Boolean).pop() || '';
                 onSelect({ name: p.name, id });

@@ -165,8 +165,7 @@ export function OpponentTeamTab({ matchId, initialTeam, onUpdate }: OpponentTeam
               backgroundColor: 'transparent',
               border: '2px dashed var(--border-color)',
               borderRadius: 'var(--radius-sm)',
-              minWidth: 0,
-              overflow: 'hidden'
+              minWidth: 0
             }}>
               <span style={{ fontWeight: 700, fontSize: '0.55rem', marginBottom: '2px', color: 'var(--text-muted)' }}>Empty</span>
               <div style={{ width: '100%', transform: 'scale(0.8)', transformOrigin: 'top center' }}>
